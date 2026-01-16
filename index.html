@@ -691,11 +691,16 @@
         // Verificar se Firebase está configurado
         function initFirebase() {
             try {
+                console.log('[DEBUG] Iniciando Firebase com config:', firebaseConfig.projectId);
                 firebase.initializeApp(firebaseConfig);
+                console.log('[DEBUG] Firebase inicializado com sucesso');
+                
                 const db = firebase.database();
                 const ref = db.ref('tacp_contract');
+                console.log('[DEBUG] Conectando ao banco de dados...');
                 
                 ref.on('value', (snapshot) => {
+                    console.log('[DEBUG] Dados recebidos do Firebase:', snapshot.exists());
                     if (snapshot.exists()) {
                         const data = snapshot.val();
                         state.clauses = data.clauses || state.clauses;
@@ -704,14 +709,19 @@
                         renderClauses();
                         updateNotifications();
                     }
+                }, (error) => {
+                    console.error('[ERROR] Erro ao ler dados do Firebase:', error.code, error.message);
                 });
 
                 state.firebaseReady = true;
                 firebaseStatusDiv.textContent = '✓ Conectado ao Firebase em Tempo Real';
                 firebaseStatusDiv.classList.remove('disconnected');
+                console.log('[SUCCESS] Sistema de sincronização Firebase ativo');
             } catch (error) {
-                console.log('Firebase não configurado. Usando localStorage.');
-                firebaseStatusDiv.textContent = '⚠️ Modo Local (localStorage) - Configure Firebase para sincronização em tempo real';
+                console.error('[ERROR] Firebase não inicializado:', error.code || 'unknown', error.message);
+                console.error('[ERROR] Stack:', error.stack);
+                console.log('[FALLBACK] Firebase não configurado. Usando localStorage.');
+                firebaseStatusDiv.textContent = '⚠️ Modo Local (localStorage) - Erro: ' + (error.code || error.message || 'Desconhecido');
                 firebaseStatusDiv.classList.add('disconnected');
                 loadLocalData();
             }
