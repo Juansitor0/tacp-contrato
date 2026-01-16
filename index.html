@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TACP - Contrato 2026 | Tempo Real com Firebase</title>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js?v=2"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js?v=2"></script>
     <style>
         :root {
             --bg-color: #0a0b10;
@@ -690,6 +690,18 @@
 
         // Verificar se Firebase está configurado
         function initFirebase() {
+            // Aguardar que Firebase esteja disponível
+            if (typeof firebase === 'undefined') {
+                console.error('[ERROR] Firebase library não carregou. Verificar conexão e URLs das bibliotecas.');
+                console.log('[FALLBACK] Firebase não disponível. Usando localStorage.');
+                firebaseStatusDiv.textContent = '⚠️ Modo Local (localStorage) - Biblioteca Firebase não carregou';
+                firebaseStatusDiv.classList.add('disconnected');
+                loadLocalData();
+                renderClauses();
+                updateNotifications();
+                return;
+            }
+
             try {
                 console.log('[DEBUG] Iniciando Firebase com config:', firebaseConfig.projectId);
                 firebase.initializeApp(firebaseConfig);
@@ -1023,10 +1035,18 @@
         }
 
         // Inicializar
-        initFirebase();
-        renderClauses();
-        updateDeployButton();
-        updateNotifications();
+        // Aguardar carregamento das libs Firebase (máximo 5 segundos)
+        let initAttempts = 0;
+        const initInterval = setInterval(() => {
+            initAttempts++;
+            if (typeof firebase !== 'undefined' || initAttempts > 50) {
+                clearInterval(initInterval);
+                initFirebase();
+                renderClauses();
+                updateDeployButton();
+                updateNotifications();
+            }
+        }, 100);
     </script>
 </body>
 </html>
