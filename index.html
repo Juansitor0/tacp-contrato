@@ -18,44 +18,48 @@
             --warning-yellow: #ffcc00;
         }
 
+        * { box-sizing: border-box; }
+
         body {
             background-color: var(--bg-color);
             color: var(--text-white);
             font-family: 'Courier New', Courier, monospace;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
             overflow-x: hidden;
         }
 
         .dashboard {
             width: 100%;
-            max-width: 900px;
+            max-width: 800px;
             background: var(--card-bg);
             border: 1px solid var(--neon-blue);
             box-shadow: 0 0 20px rgba(0, 210, 255, 0.2);
-            padding: 30px;
+            padding: 20px;
             border-radius: 8px;
-            position: relative;
+            margin: 20px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
         header {
             border-bottom: 2px solid var(--neon-blue);
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            padding-bottom: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 15px;
         }
 
         h1 {
             color: var(--neon-blue);
-            font-size: 1.5rem;
+            font-size: clamp(1.2rem, 5vw, 1.8rem);
             margin: 0;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -64,23 +68,18 @@
         .system-status {
             font-size: 0.8rem;
             text-align: right;
+            flex-grow: 1;
         }
 
-        .status-item {
-            margin-bottom: 5px;
-        }
-
+        .status-item { margin-bottom: 5px; }
         .status-online { color: var(--matrix-green); }
-        .status-warning { color: var(--warning-yellow); }
-        .status-pending { color: var(--alert-red); }
 
         .firebase-status {
             font-size: 0.7rem;
-            padding: 8px;
+            padding: 10px;
             border-radius: 4px;
             background: rgba(0, 255, 65, 0.1);
             border: 1px solid var(--matrix-green);
-            margin-bottom: 15px;
             text-align: center;
         }
 
@@ -92,69 +91,70 @@
         .user-selector {
             background: rgba(0, 0, 0, 0.3);
             border: 1px solid #30363d;
-            padding: 10px;
+            padding: 15px;
             border-radius: 4px;
-            margin-bottom: 20px;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
         }
 
         .user-selector label {
-            margin-right: 15px;
-            color: var(--text-gray);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
-        .user-selector input[type="radio"] {
-            margin-right: 5px;
-            accent-color: var(--matrix-green);
-        }
+        .user-selector input[type="radio"] { accent-color: var(--matrix-green); }
 
         .notifications {
             background: rgba(255, 204, 0, 0.1);
             border: 1px solid var(--warning-yellow);
             padding: 12px;
             border-radius: 4px;
-            margin-bottom: 20px;
             display: none;
         }
 
-        .notifications.active {
-            display: block;
-        }
+        .notifications.active { display: block; }
 
         .notification-item {
             font-size: 0.8rem;
             color: var(--warning-yellow);
-            margin-bottom: 8px;
             padding: 8px;
             background: rgba(0, 0, 0, 0.3);
             border-left: 3px solid var(--warning-yellow);
         }
 
-        .metrics {
-            display: flex;
-            flex-direction: column;
-            align-items: center; /* Centraliza horizontalmente os itens */
-            justify-content: center; /* Garante a centralização no eixo principal */
-            gap: 15px;
-            margin-bottom: 25px;
-            width: 100%; /* Ocupa a largura total do dashboard */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
         }
 
-        .metric-card {
+        @media (min-width: 768px) {
+            .main-grid { grid-template-columns: 1.2fr 0.8fr; }
+        }
+
+        .metric-card-graph {
             background: rgba(0, 0, 0, 0.3);
             border: 1px solid #30363d;
             padding: 15px;
             border-radius: 4px;
-            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             width: 100%;
         }
 
-        .metric-card-graph {
+        .chart-container {
+            position: relative;
+            height: 300px;
             width: 100%;
-            max-width: 500px;
-            display: flex;
-            flex-direction: column;
-        align-items: center;
+            max-width: 400px;
+            margin-top: 10px;
         }
 
         .expandable-section {
@@ -164,7 +164,6 @@
             overflow: hidden;
             transition: all 0.3s ease;
             width: 100%;
-            max-width: 500px;
         }
 
         .expandable-header {
@@ -176,12 +175,6 @@
             align-items: center;
             border-bottom: 1px solid #30363d;
             user-select: none;
-            transition: all 0.3s ease;
-        }
-
-        .expandable-header:hover {
-            background: rgba(0, 210, 255, 0.1);
-            border-bottom-color: var(--neon-blue);
         }
 
         .expandable-header span {
@@ -192,14 +185,12 @@
         }
 
         .expand-icon {
-            font-size: 1.2rem;
+            font-size: 1rem;
             transition: transform 0.3s ease;
             color: var(--matrix-green);
         }
 
-        .expandable-section.expanded .expand-icon {
-            transform: rotate(180deg);
-        }
+        .expandable-section.expanded .expand-icon { transform: rotate(180deg); }
 
         .expandable-content {
             max-height: 0;
@@ -208,42 +199,45 @@
         }
 
         .expandable-section.expanded .expandable-content {
-            max-height: 300px;
+            max-height: 500px;
             padding: 15px;
         }
 
-        .metric-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: var(--matrix-green);
-            display: block;
+        .status-slider {
+            width: 100%;
+            accent-color: var(--neon-blue);
+            cursor: pointer;
+            margin: 10px 0;
         }
 
-        .metric-label {
-            font-size: 0.7rem;
-            color: var(--text-gray);
-            text-transform: uppercase;
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 15px;
         }
 
         .clauses {
-            margin-bottom: 30px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
 
         .clause-item {
             background: rgba(255, 255, 255, 0.03);
-            border-left: 3px solid var(--neon-blue);
-            margin-bottom: 15px;
+            border-left: 4px solid var(--neon-blue);
             padding: 15px;
             transition: all 0.3s ease;
             display: flex;
             align-items: flex-start;
             cursor: pointer;
-            position: relative;
+            border-radius: 0 4px 4px 0;
         }
 
         .clause-item:hover {
             background: rgba(255, 255, 255, 0.07);
-            box-shadow: 0 0 10px rgba(0, 210, 255, 0.1);
+            transform: translateX(5px);
         }
 
         .clause-item.pending-edit {
@@ -253,80 +247,40 @@
 
         .clause-checkbox {
             margin-right: 15px;
-            margin-top: 5px;
+            margin-top: 3px;
             cursor: pointer;
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
             accent-color: var(--matrix-green);
             flex-shrink: 0;
         }
 
-        .clause-content {
-            flex: 1;
-        }
-
-        .clause-content h3 {
-            margin: 0 0 5px 0;
-            font-size: 1rem;
-            color: var(--neon-blue);
-        }
-
-        .clause-content p {
-            margin: 0;
-            font-size: 0.9rem;
-            line-height: 1.4;
-            color: var(--text-gray);
-        }
-
-        .info-icon {
-            margin-left: 10px;
-            color: var(--matrix-green);
-            font-size: 0.8rem;
-            opacity: 0.7;
-            transition: opacity 0.3s;
-        }
-
-        .clause-item:hover .info-icon {
-            opacity: 1;
-        }
+        .clause-content { flex: 1; }
+        .clause-content h3 { margin: 0 0 8px 0; font-size: 1rem; color: var(--neon-blue); }
+        .clause-content p { margin: 0; font-size: 0.9rem; line-height: 1.5; color: var(--text-gray); }
 
         .edit-badge {
-            display: inline-block;
             background: var(--warning-yellow);
             color: #000;
             font-size: 0.6rem;
-            padding: 2px 6px;
+            padding: 2px 5px;
             border-radius: 3px;
-            margin-left: 8px;
+            margin-left: 5px;
             font-weight: bold;
-        }
-
-        .alert-critical {
-            color: var(--alert-red);
-            font-weight: bold;
-            animation: blink 1s infinite;
-            margin-top: 10px;
-            display: block;
-            font-size: 0.8rem;
-        }
-
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0.3; }
-            100% { opacity: 1; }
         }
 
         .deploy-section {
             text-align: center;
             border-top: 1px solid #30363d;
-            padding-top: 20px;
+            padding-top: 30px;
+            margin-top: 10px;
         }
 
         #btn-deploy {
             background: transparent;
             border: 2px solid var(--neon-blue);
             color: var(--neon-blue);
-            padding: 15px 40px;
+            padding: 15px 30px;
             font-size: 1.1rem;
             font-family: inherit;
             font-weight: bold;
@@ -334,304 +288,112 @@
             transition: all 0.3s;
             text-transform: uppercase;
             letter-spacing: 2px;
+            width: 100%;
+            max-width: 300px;
         }
 
-        #btn-deploy:disabled {
-            border-color: #30363d;
-            color: #30363d;
-            cursor: not-allowed;
-        }
-
-        #btn-deploy:not(:disabled):hover {
+        #btn-deploy:hover:not(:disabled) {
             background: var(--neon-blue);
             color: var(--bg-color);
-            box-shadow: 0 0 15px var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-blue);
         }
 
+        #btn-deploy:disabled { border-color: #30363d; color: #30363d; cursor: not-allowed; }
+
         #terminal-log {
-            display: none;
+            margin-top: 20px;
             background: #000;
             color: var(--matrix-green);
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
             padding: 15px;
-            font-size: 0.8rem;
+            border-radius: 4px;
+            text-align: left;
             height: 150px;
             overflow-y: auto;
-            margin-top: 20px;
-            text-align: left;
+            display: none;
             border: 1px solid #333;
         }
 
         .success-msg {
-            display: none;
             margin-top: 20px;
-            padding: 20px;
-            border: 2px dashed var(--matrix-green);
             color: var(--matrix-green);
             font-weight: bold;
-            text-align: center;
-        }
-
-        canvas#confetti {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 999;
-        }
-
-        /* MODAL STYLES */
-        .modal-overlay {
             display: none;
+            padding: 20px;
+            border: 2px dashed var(--matrix-green);
+            background: rgba(0, 255, 65, 0.05);
+        }
+
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
             justify-content: center;
             align-items: center;
-            backdrop-filter: blur(2px);
+            z-index: 1000;
+            padding: 20px;
         }
 
-        .modal-overlay.active {
-            display: flex;
-        }
+        .modal-overlay.active { display: flex; }
 
         .modal-content {
             background: var(--card-bg);
-            border: 2px solid var(--neon-blue);
+            border: 1px solid var(--neon-blue);
+            width: 100%;
+            max-width: 500px;
             border-radius: 8px;
-            padding: 30px;
-            max-width: 600px;
-            max-height: 80vh;
+            max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 0 30px rgba(0, 210, 255, 0.3);
             position: relative;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
         .modal-header {
-            border-bottom: 2px solid var(--neon-blue);
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            padding: 15px 20px;
+            border-bottom: 1px solid #30363d;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            background: var(--card-bg);
+            z-index: 10;
         }
 
-        .modal-header h2 {
-            margin: 0;
-            color: var(--neon-blue);
-            font-size: 1.3rem;
-        }
-
-        .modal-close {
-            background: transparent;
-            border: 1px solid var(--neon-blue);
-            color: var(--neon-blue);
-            font-size: 1.5rem;
-            cursor: pointer;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-
-        .modal-close:hover {
-            background: var(--neon-blue);
-            color: var(--bg-color);
-        }
-
-        .modal-body {
-            color: var(--text-white);
-            line-height: 1.6;
-            font-size: 0.95rem;
-        }
-
-        .modal-body p {
-            margin-bottom: 15px;
-            color: var(--text-gray);
-        }
-
-        .modal-body strong {
-            color: var(--matrix-green);
-        }
-
-        .modal-body h3 {
-            color: var(--neon-blue);
-            margin-top: 15px;
-            margin-bottom: 10px;
-        }
-
-        .modal-body ul {
-            margin-left: 20px;
-            margin-bottom: 10px;
-        }
-
-        .modal-body li {
-            margin-bottom: 8px;
-            color: var(--text-gray);
-        }
-
-        .edit-controls {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #30363d;
-        }
+        .modal-close { background: none; border: none; color: var(--text-gray); font-size: 1.5rem; cursor: pointer; }
+        .modal-body { padding: 20px; }
 
         .edit-controls textarea {
             width: 100%;
             background: rgba(0, 0, 0, 0.3);
             border: 1px solid var(--neon-blue);
             color: var(--text-white);
-            padding: 10px;
+            padding: 12px;
             font-family: inherit;
             font-size: 0.9rem;
             resize: vertical;
-            min-height: 100px;
+            min-height: 120px;
             border-radius: 4px;
-        }
-
-        .edit-controls textarea:focus {
-            outline: none;
-            box-shadow: 0 0 10px rgba(0, 210, 255, 0.3);
-        }
-
-        .edit-buttons {
-            display: flex;
-            gap: 10px;
             margin-top: 10px;
         }
 
-        .edit-buttons button {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid var(--neon-blue);
-            background: transparent;
-            color: var(--neon-blue);
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 0.8rem;
-            border-radius: 4px;
-            transition: all 0.3s;
+        .edit-buttons, .approval-buttons { display: flex; gap: 10px; margin-top: 15px; }
+        .edit-buttons button, .approval-buttons button {
+            flex: 1; padding: 12px; border: 1px solid var(--neon-blue); background: transparent;
+            color: var(--neon-blue); cursor: pointer; font-family: inherit; font-size: 0.85rem;
+            border-radius: 4px; transition: all 0.3s;
         }
 
-        .edit-buttons button:hover {
-            background: var(--neon-blue);
-            color: var(--bg-color);
-        }
+        .btn-save, .btn-approve { border-color: var(--matrix-green) !important; color: var(--matrix-green) !important; }
+        .btn-cancel, .btn-reject { border-color: var(--alert-red) !important; color: var(--alert-red) !important; }
+        .btn-save:hover, .btn-approve:hover { background: var(--matrix-green) !important; color: var(--bg-color) !important; }
+        .btn-cancel:hover, .btn-reject:hover { background: var(--alert-red) !important; color: var(--bg-color) !important; }
 
-        .btn-save {
-            border-color: var(--matrix-green) !important;
-            color: var(--matrix-green) !important;
-        }
-
-        .btn-save:hover {
-            background: var(--matrix-green) !important;
-            color: var(--bg-color) !important;
-        }
-
-        .btn-cancel {
-            border-color: var(--alert-red) !important;
-            color: var(--alert-red) !important;
-        }
-
-        .btn-cancel:hover {
-            background: var(--alert-red) !important;
-            color: var(--bg-color) !important;
-        }
-
-        .approval-section {
-            background: rgba(255, 204, 0, 0.1);
-            border: 1px solid var(--warning-yellow);
-            padding: 15px;
-            border-radius: 4px;
-            margin-top: 15px;
-        }
-
-        .approval-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .approval-buttons button {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid;
-            background: transparent;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 0.8rem;
-            border-radius: 4px;
-            transition: all 0.3s;
-        }
-
-        .btn-approve {
-            border-color: var(--matrix-green);
-            color: var(--matrix-green);
-        }
-
-        .btn-approve:hover {
-            background: var(--matrix-green);
-            color: var(--bg-color);
-        }
-
-        .btn-reject {
-            border-color: var(--alert-red);
-            color: var(--alert-red);
-        }
-
-        .btn-reject:hover {
-            background: var(--alert-red);
-            color: var(--bg-color);
-        }
-
-        .modal-content::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .modal-content::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.3);
-        }
-
-        .modal-content::-webkit-scrollbar-thumb {
-            background: var(--neon-blue);
-            border-radius: 4px;
-        }
-
-        .modal-content::-webkit-scrollbar-thumb:hover {
-            background: var(--matrix-green);
-        }
-
-        .status-slider {
-         width: 100%;
-            accent-color: var(--neon-blue);
-         cursor: pointer;
-         background: #161b22;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
+        #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2000; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -639,16 +401,13 @@
 
     <canvas id="confetti"></canvas>
 
-    <!-- MODAL PLUGIN -->
     <div class="modal-overlay" id="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modal-title">Cláusula</h2>
+                <h2 id="modal-title" style="font-size: 1.1rem; color: var(--neon-blue); margin: 0;">Cláusula</h2>
                 <button class="modal-close" id="modal-close">&times;</button>
             </div>
-            <div class="modal-body" id="modal-body">
-                <!-- Conteúdo será injetado aqui -->
-            </div>
+            <div class="modal-body" id="modal-body"></div>
         </div>
     </div>
 
@@ -656,71 +415,44 @@
         <header>
             <div>
                 <h1>Contrato 2026</h1>
-                <div style="font-size: 0.7rem; color: var(--text-gray);">AUDITORIA: CONDENADA | STATUS: EM PRODUÇÃO</div>
+                <div style="font-size: 0.7rem; color: var(--text-gray); margin-top: 5px;">AUDITORIA: CONDENADA | STATUS: EM PRODUÇÃO</div>
             </div>
             <div class="system-status">
                 <div class="status-item">SLA: <span class="status-online">99.99%</span></div>
-                <div class="status-item">LATÊNCIA: <span class="status-online">0ms</span></div>
+                <div class="status-item">UPTIME: <span id="uptime-val" class="status-online">00:00:00</span></div>
             </div>
         </header>
 
-        <div class="firebase-status" id="firebase-status">
-            🔄 Conectando ao Firebase...
-        </div>
+        <div class="firebase-status" id="firebase-status">🔄 Conectando ao Firebase...</div>
 
         <div class="user-selector">
-            <label>
-                <input type="radio" name="user" value="juan" checked> Juan (Contratante)
-            </label>
-            <label>
-                <input type="radio" name="user" value="miciliane"> Miciliane (Contratada)
-            </label>
-            <span style="margin-left: 20px; color: var(--text-gray);">Modo: <span id="current-user">Juan</span></span>
+            <label><input type="radio" name="user" value="juan" checked> Juan (Contratante)</label>
+            <label><input type="radio" name="user" value="miciliane"> Miciliane (Contratada)</label>
+            <div style="width: 100%; text-align: center; margin-top: 5px; color: var(--text-gray); font-size: 0.75rem;">
+                Modo Ativo: <span id="current-user" style="color: var(--neon-blue); font-weight: bold;">Juan</span>
+            </div>
         </div>
 
-        <div class="notifications" id="notifications">
-            <!-- Notificações serão adicionadas aqui -->
-        </div>
+        <div class="notifications" id="notifications"></div>
 
-         <div class="metric-card metric-card-graph">
-     <span class="metric-label">Monitor de Biometria Emocional</span>
-        <div style="height: 300px; width: 100%; display: flex; justify-content: center; margin-top: 10px;">
-          <canvas id="radarChart"></canvas>
-        </div>
-    </div>
+        <div class="main-grid">
+            <div class="metric-card-graph">
+                <span style="font-size: 0.7rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px;">Monitor de Biometria Emocional</span>
+                <div class="chart-container"><canvas id="radarChart"></canvas></div>
+            </div>
 
-    <div class="expandable-section" id="expandable-controls">
-        <div class="expandable-header">
-            <span>Atualizar Meus Status</span>
-            <span class="expand-icon">▼</span>
-        </div>
-        <div class="expandable-content">
-            <div id="controls-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div class="control-group">
-                    <label style="font-size: 0.6rem; color: var(--text-gray);">FOME</label>
-                    <input type="range" class="status-slider" data-index="0" min="0" max="100" value="50">
-                </div>
-                <div class="control-group">
-                    <label style="font-size: 0.6rem; color: var(--text-gray);">PACIÊNCIA</label>
-                    <input type="range" class="status-slider" data-index="1" min="0" max="100" value="50">
-                </div>
-                <div class="control-group">
-                    <label style="font-size: 0.6rem; color: var(--text-gray);">SAUDADE</label>
-                    <input type="range" class="status-slider" data-index="2" min="0" max="100" value="50">
-                </div>
-                <div class="control-group">
-                    <label style="font-size: 0.6rem; color: var(--text-gray);">ENERGIA</label>
-                    <input type="range" class="status-slider" data-index="3" min="0" max="100" value="50">
+            <div class="expandable-section" id="expandable-controls">
+                <div class="expandable-header"><span>Atualizar Meus Status</span><span class="expand-icon">▼</span></div>
+                <div class="expandable-content">
+                    <div class="control-group"><label style="font-size: 0.6rem; color: var(--text-gray);">FOME</label><input type="range" class="status-slider" data-index="0" min="0" max="100" value="50"></div>
+                    <div class="control-group"><label style="font-size: 0.6rem; color: var(--text-gray);">PACIÊNCIA</label><input type="range" class="status-slider" data-index="1" min="0" max="100" value="50"></div>
+                    <div class="control-group"><label style="font-size: 0.6rem; color: var(--text-gray);">SAUDADE</label><input type="range" class="status-slider" data-index="2" min="0" max="100" value="50"></div>
+                    <div class="control-group"><label style="font-size: 0.6rem; color: var(--text-gray);">ENERGIA</label><input type="range" class="status-slider" data-index="3" min="0" max="100" value="50"></div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-
-        <div class="clauses" id="clauses-container">
-            <!-- Cláusulas serão adicionadas aqui -->
-        </div>
+        <div class="clauses" id="clauses-container"></div>
 
         <div class="deploy-section">
             <button id="btn-deploy" disabled>ASSINAR CONTRATO</button>
@@ -733,7 +465,7 @@
     </div>
 
     <script>
-        // Conteúdo padrão das cláusulas
+        // Conteúdo padrão das cláusulas (ORIGINAL)
         const defaultClauses = {
             1: {
                 title: "CLÁUSULA 1 – DA DISPONIBILIDADE (DOMINGOS E FERIADOS)",
@@ -757,7 +489,7 @@
             }
         };
 
-        // Estado global
+        // Estado global (ORIGINAL)
         const state = {
             currentUser: 'juan',
             clauses: JSON.parse(JSON.stringify(defaultClauses)),
@@ -767,23 +499,7 @@
             biometria: { juan: [50, 80, 70, 60, 100], miciliane: [40, 70, 90, 50, 100] }
         };
 
-        // Elementos do DOM
-        const checkboxes = document.querySelectorAll('.clause-checkbox');
-        const btnDeploy = document.getElementById('btn-deploy');
-        const terminal = document.getElementById('terminal-log');
-        const finalMsg = document.getElementById('final-msg');
-        const uptimeEl = document.getElementById('uptime-val');
-        const modal = document.getElementById('modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalBody = document.getElementById('modal-body');
-        const modalClose = document.getElementById('modal-close');
-        const clausesContainer = document.getElementById('clauses-container');
-        const userRadios = document.querySelectorAll('input[name="user"]');
-        const currentUserSpan = document.getElementById('current-user');
-        const notificationsDiv = document.getElementById('notifications');
-        const firebaseStatusDiv = document.getElementById('firebase-status');
-
-        // Inicializar Firebase
+        // Configuração Firebase (ORIGINAL)
         const firebaseConfig = {
             apiKey: "AIzaSyDeXp1gHm2cyd0MPRbyj7NMm0HlnlI9tCE",
             authDomain: "contrato-online.firebaseapp.com",
@@ -795,58 +511,50 @@
             measurementId: "G-0BV1XCBPGG"
         };
 
-        // Verificar se Firebase está configurado
-        function initFirebase() {
-            // Aguardar que Firebase esteja disponível
-            if (typeof firebase === 'undefined') {
-                console.error('[ERROR] Firebase library não carregou. Verificar conexão e URLs das bibliotecas.');
-                console.log('[FALLBACK] Firebase não disponível. Usando localStorage.');
-                firebaseStatusDiv.textContent = '⚠️ Modo Local (localStorage) - Biblioteca Firebase não carregou';
-                firebaseStatusDiv.classList.add('disconnected');
-                loadLocalData();
-                renderClauses();
-                updateNotifications();
-                return;
-            }
+        // Elementos do DOM
+        const clausesContainer = document.getElementById('clauses-container');
+        const firebaseStatusDiv = document.getElementById('firebase-status');
+        const currentUserSpan = document.getElementById('current-user');
+        const notificationsDiv = document.getElementById('notifications');
+        const btnDeploy = document.getElementById('btn-deploy');
+        const terminal = document.getElementById('terminal-log');
+        const finalMsg = document.getElementById('final-msg');
+        const uptimeEl = document.getElementById('uptime-val');
+        const modal = document.getElementById('modal');
+        const modalBody = document.getElementById('modal-body');
+        const modalTitle = document.getElementById('modal-title');
+        const modalClose = document.getElementById('modal-close');
 
+        // Inicializar Firebase (ORIGINAL)
+        function initFirebase() {
+            if (typeof firebase === 'undefined') {
+                firebaseStatusDiv.textContent = '⚠️ Modo Local (Biblioteca não carregou)';
+                firebaseStatusDiv.classList.add('disconnected');
+                loadLocalData(); renderClauses(); return;
+            }
             try {
-                console.log('[DEBUG] Iniciando Firebase com config:', firebaseConfig.projectId);
                 firebase.initializeApp(firebaseConfig);
-                console.log('[DEBUG] Firebase inicializado com sucesso');
-                
                 const db = firebase.database();
                 const ref = db.ref('tacp_contract');
-                console.log('[DEBUG] Conectando ao banco de dados...');
-                
                 ref.on('value', (snapshot) => {
-                    console.log('[DEBUG] Dados recebidos do Firebase:', snapshot.exists());
                     if (snapshot.exists()) {
                         const data = snapshot.val();
                         state.clauses = data.clauses || state.clauses;
                         state.pendingEdits = data.pendingEdits || {};
                         state.checkboxes = data.checkboxes || {};
-                        renderClauses();
-                        updateNotifications();
+                        renderClauses(); updateNotifications(); updateDeployButton();
                     }
-                }, (error) => {
-                    console.error('[ERROR] Erro ao ler dados do Firebase:', error.code, error.message);
                 });
-
                 state.firebaseReady = true;
                 firebaseStatusDiv.textContent = '✓ Conectado ao Firebase em Tempo Real';
                 firebaseStatusDiv.classList.remove('disconnected');
-                console.log('[SUCCESS] Sistema de sincronização Firebase ativo');
-            } catch (error) {
-                console.error('[ERROR] Firebase não inicializado:', error.code || 'unknown', error.message);
-                console.error('[ERROR] Stack:', error.stack);
-                console.log('[FALLBACK] Firebase não configurado. Usando localStorage.');
-                firebaseStatusDiv.textContent = '⚠️ Modo Local (localStorage) - Erro: ' + (error.code || error.message || 'Desconhecido');
+            } catch (e) {
+                firebaseStatusDiv.textContent = '⚠️ Modo Local (Erro de Conexão)';
                 firebaseStatusDiv.classList.add('disconnected');
                 loadLocalData();
             }
         }
 
-        // Carregar dados locais
         function loadLocalData() {
             const saved = localStorage.getItem('tacp_contract');
             if (saved) {
@@ -857,325 +565,144 @@
             }
         }
 
-        // Salvar dados
         function saveData() {
-            localStorage.setItem('tacp_contract', JSON.stringify({
-                clauses: state.clauses,
-                pendingEdits: state.pendingEdits,
-                checkboxes: state.checkboxes
-            }));
-
-            if (state.firebaseReady) {
-                try {
-                    firebase.database().ref('tacp_contract').set({
-                        clauses: state.clauses,
-                        pendingEdits: state.pendingEdits,
-                        checkboxes: state.checkboxes
-                    });
-                } catch (error) {
-                    console.log('Erro ao salvar no Firebase:', error);
-                }
-            }
+            const data = { clauses: state.clauses, pendingEdits: state.pendingEdits, checkboxes: state.checkboxes };
+            localStorage.setItem('tacp_contract', JSON.stringify(data));
+            if (state.firebaseReady) firebase.database().ref('tacp_contract').set(data);
         }
 
-        // Seletor de usuário
-        userRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                state.currentUser = e.target.value;
-                currentUserSpan.innerText = e.target.value === 'juan' ? 'Juan' : 'Miciliane';
-                renderClauses();
-                updateNotifications();
-                updateChart();
-            });
-        });
-
-        // Expandable section
-        const expandableSection = document.getElementById('expandable-controls');
-        if (expandableSection) {
-            expandableSection.addEventListener('click', () => {
-                expandableSection.classList.toggle('expanded');
-            });
-        }
-
-        // Status sliders
-        const statusSliders = document.querySelectorAll('.status-slider');
-        statusSliders.forEach(slider => {
-            slider.addEventListener('input', (e) => {
-                const index = parseInt(e.target.dataset.index);
-                state.biometria[state.currentUser][index] = parseInt(e.target.value);
-                updateChart();
-            });
-        });
-
-        // Simulação de Uptime
-        let seconds = 0;
-        setInterval(() => {
-            seconds++;
-            let h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-            let m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-            let s = (seconds % 60).toString().padStart(2, '0');
-            uptimeEl.innerText = `${h}:${m}:${s}`;
-        }, 1000);
-
-        // Renderizar cláusulas
+        // Renderizar cláusulas (ORIGINAL + DESIGN NOVO)
         function renderClauses() {
             clausesContainer.innerHTML = '';
             for (let i = 1; i <= 5; i++) {
                 const clause = state.clauses[i] || defaultClauses[i];
                 const hasPendingEdit = state.pendingEdits[i];
                 
-                const clauseItem = document.createElement('div');
-                clauseItem.className = `clause-item ${hasPendingEdit ? 'pending-edit' : ''}`;
-                clauseItem.dataset.clause = i;
-
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.className = 'clause-checkbox';
-                checkbox.id = `c${i}`;
-                checkbox.checked = state.checkboxes[i] || false;
-
-                checkbox.addEventListener('change', () => {
-                    state.checkboxes[i] = checkbox.checked;
-                    saveData();
-                    updateDeployButton();
-                });
-
-                const content = document.createElement('div');
-                content.className = 'clause-content';
+                const div = document.createElement('div');
+                div.className = `clause-item ${hasPendingEdit ? 'pending-edit' : ''}`;
+                
                 const preview = clause.content.substring(0, 80) + (clause.content.length > 80 ? '...' : '');
-                content.innerHTML = `
-                    <h3>
-                        ${clause.title}
-                        ${hasPendingEdit ? '<span class="edit-badge">EDIÇÃO PENDENTE</span>' : ''}
-                        <span class="info-icon">ℹ️</span>
-                    </h3>
-                    <p>${preview}</p>
+                
+                div.innerHTML = `
+                    <input type="checkbox" class="clause-checkbox" ${state.checkboxes[i] ? 'checked' : ''} onclick="event.stopPropagation(); toggleCheckbox(${i}, this.checked)">
+                    <div class="clause-content" onclick="openModal(${i})">
+                        <h3>
+                            ${clause.title} 
+                            ${hasPendingEdit ? '<span class="edit-badge">EDIÇÃO PENDENTE</span>' : ''}
+                        </h3>
+                        <p>${preview}</p>
+                    </div>
                 `;
-
-                clauseItem.appendChild(checkbox);
-                clauseItem.appendChild(content);
-
-                clauseItem.addEventListener('click', (e) => {
-                    if (e.target.type === 'checkbox') return;
-                    openModal(i);
-                });
-
-                clausesContainer.appendChild(clauseItem);
+                clausesContainer.appendChild(div);
             }
         }
 
-        // Abrir modal
-        function openModal(clauseNum) {
-            const clause = state.clauses[clauseNum] || defaultClauses[clauseNum];
-            const hasPendingEdit = state.pendingEdits[clauseNum];
+        window.toggleCheckbox = (i, checked) => { 
+            state.checkboxes[i] = checked; 
+            saveData(); 
+            updateDeployButton(); 
+        };
 
+        // Modal (ORIGINAL)
+        window.openModal = (i) => {
+            const clause = state.clauses[i] || defaultClauses[i];
+            const hasPendingEdit = state.pendingEdits[i];
             modalTitle.innerText = clause.title;
             
-            let bodyHTML = `<p>${clause.content}</p>`;
-
+            let bodyHTML = `<p style="line-height:1.6">${clause.content}</p>`;
+            
             if (state.currentUser === 'miciliane') {
                 bodyHTML += `
                     <div class="edit-controls">
                         <h3>Propor Edição</h3>
-                        <textarea id="edit-textarea" placeholder="Digite a nova versão da cláusula...">${clause.content}</textarea>
+                        <textarea id="edit-textarea">${hasPendingEdit || clause.content}</textarea>
                         <div class="edit-buttons">
-                            <button class="btn-save" onclick="proposeEdit(${clauseNum})">Propor Edição</button>
+                            <button class="btn-save" onclick="proposeEdit(${i})">Propor Edição</button>
                             <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
                         </div>
                     </div>
                 `;
-            }
-
-            if (state.currentUser === 'juan' && hasPendingEdit) {
+            } else if (state.currentUser === 'juan' && hasPendingEdit) {
                 bodyHTML += `
-                    <div class="approval-section">
-                        <h3>⚠️ Edição Proposta por Miciliane</h3>
-                        <p style="font-size: 0.85rem; color: var(--warning-yellow);">Versão Proposta:</p>
-                        <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; margin: 10px 0; max-height: 150px; overflow-y: auto;">
-                            ${hasPendingEdit}
-                        </div>
+                    <div style="margin-top:20px;padding:15px;background:rgba(255,204,0,0.1);border:1px solid var(--warning-yellow);border-radius:4px;">
+                        <h3 style="color:var(--warning-yellow);margin:0 0 10px 0">⚠️ Edição Proposta por Miciliane:</h3>
+                        <p style="font-style:italic">"${hasPendingEdit}"</p>
                         <div class="approval-buttons">
-                            <button class="btn-approve" onclick="approveEdit(${clauseNum})">✓ Aprovar</button>
-                            <button class="btn-reject" onclick="rejectEdit(${clauseNum})">✗ Rejeitar</button>
+                            <button class="btn-approve" onclick="approveEdit(${i})">✓ Aprovar</button>
+                            <button class="btn-reject" onclick="rejectEdit(${i})">✗ Rejeitar</button>
                         </div>
                     </div>
                 `;
             }
-
-            modalBody.innerHTML = bodyHTML;
+            
+            modalBody.innerHTML = bodyHTML; 
             modal.classList.add('active');
-        }
-
-        // Propor edição
-        window.proposeEdit = function(clauseNum) {
-            const textarea = document.getElementById('edit-textarea');
-            const newContent = textarea.value;
-            
-            if (!newContent.trim()) {
-                alert('Por favor, digite o novo conteúdo da cláusula.');
-                return;
-            }
-
-            state.pendingEdits[clauseNum] = newContent;
-            saveData();
-            closeModal();
-            renderClauses();
-            updateNotifications();
-            alert('✓ Edição proposta! Juan receberá uma notificação.');
         };
 
-        // Aprovar edição
-        window.approveEdit = function(clauseNum) {
-            state.clauses[clauseNum].content = state.pendingEdits[clauseNum];
-            delete state.pendingEdits[clauseNum];
-            saveData();
-            closeModal();
-            renderClauses();
-            updateNotifications();
-            alert('✓ Edição aprovada!');
+        window.closeModal = () => modal.classList.remove('active');
+        modalClose.onclick = closeModal;
+        window.onclick = (e) => { if (e.target == modal) closeModal(); };
+
+        window.proposeEdit = (i) => { 
+            const val = document.getElementById('edit-textarea').value; 
+            if (val.trim()) { 
+                state.pendingEdits[i] = val; 
+                saveData(); 
+                closeModal(); 
+                renderClauses(); 
+                updateNotifications(); 
+            } 
         };
 
-        // Rejeitar edição
-        window.rejectEdit = function(clauseNum) {
-            delete state.pendingEdits[clauseNum];
-            saveData();
-            closeModal();
-            renderClauses();
-            updateNotifications();
-            alert('✗ Edição rejeitada.');
+        window.approveEdit = (i) => { 
+            state.clauses[i].content = state.pendingEdits[i]; 
+            delete state.pendingEdits[i]; 
+            saveData(); 
+            closeModal(); 
+            renderClauses(); 
+            updateNotifications(); 
         };
 
-        // Fechar modal
-        function closeModal() {
-            modal.classList.remove('active');
-        }
+        window.rejectEdit = (i) => { 
+            delete state.pendingEdits[i]; 
+            saveData(); 
+            closeModal(); 
+            renderClauses(); 
+            updateNotifications(); 
+        };
 
-        modalClose.addEventListener('click', closeModal);
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
-
-        // Atualizar notificações
         function updateNotifications() {
-            const pendingCount = Object.keys(state.pendingEdits).length;
-            
-            if (pendingCount > 0 && state.currentUser === 'juan') {
+            const count = Object.keys(state.pendingEdits).length;
+            if (count > 0 && state.currentUser === 'juan') {
+                notificationsDiv.innerHTML = `<div class="notification-item">⚠️ Miciliane propôs ${count} alteração(ões). Verifique as cláusulas marcadas.</div>`;
                 notificationsDiv.classList.add('active');
-                notificationsDiv.innerHTML = `
-                    <div class="notification-item">
-                        ⚠️ Miciliane propôs ${pendingCount} edição(ões). Clique nas cláusulas para revisar.
-                    </div>
-                `;
             } else {
                 notificationsDiv.classList.remove('active');
             }
         }
 
-        // Validar deploy
         function updateDeployButton() {
-            const allChecked = Object.values(state.checkboxes).length === 5 && 
-                              Object.values(state.checkboxes).every(c => c);
-            const noPendingEdits = Object.keys(state.pendingEdits).length === 0;
-            btnDeploy.disabled = !allChecked || !noPendingEdits;
+            const checkedCount = Object.values(state.checkboxes).filter(v => v).length;
+            const hasEdits = Object.keys(state.pendingEdits).length > 0;
+            btnDeploy.disabled = checkedCount < 5 || hasEdits;
         }
 
-        // Deploy
-        btnDeploy.addEventListener('click', () => {
-            btnDeploy.innerText = 'READY FOR DEPLOY';
-            btnDeploy.disabled = true;
-            terminal.style.display = 'block';
-            
-            const logs = [
-                "> Inicializando protocolo de auditoria...",
-                "> Verificando integridade das cláusulas...",
-                "> Validando assinatura de Miciliane Vaz de Melo...",
-                "> Opção 1 detectada como 'Mais Viável'...",
-                "> Bloqueando rollback de backup anterior...",
-                "> Configurando suporte 24/7 para domingos...",
-                "> Alocando orçamento para lanches de contingência...",
-                "> Sincronizando servidor de paciência industrial...",
-                "> Deploying TACP to Production Cluster...",
-                "> [SUCCESS] Contrato propagado em todos os nós da rede."
-            ];
+        // Seletor de Usuário
+        document.querySelectorAll('input[name="user"]').forEach(r => r.addEventListener('change', (e) => {
+            state.currentUser = e.target.value;
+            currentUserSpan.innerText = state.currentUser === 'juan' ? 'Juan' : 'Miciliane';
+            renderClauses(); 
+            updateNotifications(); 
+            updateChart();
+        }));
 
-            let i = 0;
-            const interval = setInterval(() => {
-                if (i < logs.length) {
-                    const line = document.createElement('div');
-                    line.innerText = logs[i];
-                    terminal.appendChild(line);
-                    terminal.scrollTop = terminal.scrollHeight;
-                    i++;
-                } else {
-                    clearInterval(interval);
-                    finalMsg.style.display = 'block';
-                    startConfetti();
-                }
-            }, 400);
-        });
+        // Expandir Controles
+        document.querySelector('.expandable-header').onclick = () => {
+            document.getElementById('expandable-controls').classList.toggle('expanded');
+        };
 
-        // Confete
-        function startConfetti() {
-            const canvas = document.getElementById('confetti');
-            const ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-
-            let particles = [];
-            for (let i = 0; i < 150; i++) {
-                particles.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height - canvas.height,
-                    r: Math.random() * 6 + 2,
-                    d: Math.random() * 150,
-                    color: `hsl(${Math.random() * 360}, 100%, 50%)`,
-                    tilt: Math.random() * 10 - 10
-                });
-            }
-
-            function draw() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                particles.forEach((p) => {
-                    ctx.beginPath();
-                    ctx.lineWidth = p.r;
-                    ctx.strokeStyle = p.color;
-                    ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
-                    ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
-                    ctx.stroke();
-                });
-                update();
-            }
-
-            function update() {
-                particles.forEach((p) => {
-                    p.y += Math.cos(p.d) + 1 + p.r / 2;
-                    p.tilt += Math.sin(p.d) * 0.1;
-                    if (p.y > canvas.height) {
-                        p.y = -20;
-                        p.x = Math.random() * canvas.width;
-                    }
-                });
-                requestAnimationFrame(draw);
-            }
-            draw();
-        }
-
-        // Inicializar
-        // Aguardar carregamento das libs Firebase (máximo 5 segundos)
-        let initAttempts = 0;
-        const initInterval = setInterval(() => {
-            initAttempts++;
-            if (typeof firebase !== 'undefined' || initAttempts > 50) {
-                clearInterval(initInterval);
-                initFirebase();
-                renderClauses();
-                updateDeployButton();
-                updateNotifications();
-            }
-        }, 100);
-
+        // Gráfico Radar (ORIGINAL)
         let myRadarChart;
-
         function initRadar() {
             const ctx = document.getElementById('radarChart').getContext('2d');
             myRadarChart = new Chart(ctx, {
@@ -1188,32 +715,115 @@
                     ]
                 },
                 options: {
-                    scales: { r: { suggestedMin: 0, suggestedMax: 100, grid: { color: '#30363d' }, angleLines: { color: '#30363d' }, pointLabels: { color: '#8b949e' }, ticks: { display: false } } },
-                    plugins: { legend: { labels: { color: '#c9d1d9', font: { family: 'Courier New' } } } }
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    scales: { 
+                        r: { 
+                            suggestedMin: 0, suggestedMax: 100, 
+                            grid: { color: '#30363d' }, 
+                            angleLines: { color: '#30363d' }, 
+                            pointLabels: { color: '#8b949e', font: { size: 10 } }, 
+                            ticks: { display: false } 
+                        } 
+                    },
+                    plugins: { legend: { position: 'bottom', labels: { color: '#c9d1d9', font: { family: 'Courier New', size: 10 } } } }
                 }
             });
         }
 
         function updateChart() {
             if (myRadarChart) {
-                const datasetIndex = state.currentUser === 'juan' ? 0 : 1;
-                myRadarChart.data.datasets[datasetIndex].data = state.biometria[state.currentUser];
+                myRadarChart.data.datasets[0].data = state.biometria.juan;
+                myRadarChart.data.datasets[1].data = state.biometria.miciliane;
                 myRadarChart.update();
-                
-                // Atualizar sliders com os valores atuais
-                const sliders = document.querySelectorAll('.status-slider');
-                sliders.forEach((slider, idx) => {
-                    slider.value = state.biometria[state.currentUser][idx];
+                document.querySelectorAll('.status-slider').forEach((s, i) => {
+                    s.value = state.biometria[state.currentUser][i];
                 });
             }
         }
 
-        // Chame initRadar() no final do carregamento
-        window.addEventListener('load', () => {
-            setTimeout(initRadar, 1500); // Dá um tempo para o Firebase carregar os dados primeiro
+        document.querySelectorAll('.status-slider').forEach(s => s.oninput = (e) => {
+            state.biometria[state.currentUser][e.target.dataset.index] = parseInt(e.target.value);
+            updateChart();
         });
 
+        // Uptime (ORIGINAL)
+        let seconds = 0; 
+        setInterval(() => { 
+            seconds++; 
+            let h = Math.floor(seconds/3600).toString().padStart(2,'0');
+            let m = Math.floor((seconds%3600)/60).toString().padStart(2,'0');
+            let s = (seconds%60).toString().padStart(2,'0');
+            uptimeEl.innerText = `${h}:${m}:${s}`; 
+        }, 1000);
 
+        // Deploy (ORIGINAL)
+        btnDeploy.onclick = () => {
+            btnDeploy.disabled = true; 
+            terminal.style.display = 'block';
+            const logs = [
+                "> Inicializando protocolo de auditoria...", 
+                "> Verificando integridade das cláusulas...", 
+                "> Validando assinatura de Miciliane Vaz de Melo...", 
+                "> Opção 1 detectada como 'Mais Viável'...", 
+                "> [SUCCESS] Contrato propagado em todos os nós da rede."
+            ];
+            let i = 0; 
+            const interval = setInterval(() => {
+                if (i < logs.length) { 
+                    const l = document.createElement('div'); 
+                    l.innerText = logs[i++]; 
+                    terminal.appendChild(l); 
+                    terminal.scrollTop = terminal.scrollHeight; 
+                } else { 
+                    clearInterval(interval); 
+                    finalMsg.style.display = 'block'; 
+                    startConfetti(); 
+                }
+            }, 600);
+        };
+
+        // Confete (ORIGINAL)
+        function startConfetti() {
+            const canvas = document.getElementById('confetti'), ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            let particles = []; 
+            for (let i=0; i<100; i++) {
+                particles.push({ 
+                    x: Math.random()*canvas.width, 
+                    y: Math.random()*canvas.height-canvas.height, 
+                    r: Math.random()*4+2, 
+                    d: Math.random()*100, 
+                    color: `hsl(${Math.random()*360}, 100%, 50%)`, 
+                    tilt: Math.random()*10-10 
+                });
+            }
+            function draw() { 
+                ctx.clearRect(0,0,canvas.width,canvas.height); 
+                particles.forEach(p => { 
+                    ctx.beginPath(); ctx.lineWidth=p.r; ctx.strokeStyle=p.color; 
+                    ctx.moveTo(p.x+p.tilt+p.r/2, p.y); 
+                    ctx.lineTo(p.x+p.tilt, p.y+p.tilt+p.r/2); 
+                    ctx.stroke(); 
+                }); 
+                update(); 
+            }
+            function update() { 
+                particles.forEach(p => { 
+                    p.y += Math.cos(p.d)+1+p.r/2; 
+                    p.tilt += Math.sin(p.d)*0.1; 
+                    if (p.y > canvas.height) { p.y = -20; p.x = Math.random()*canvas.width; } 
+                }); 
+                requestAnimationFrame(draw); 
+            }
+            draw();
+        }
+
+        window.onload = () => { 
+            initFirebase(); 
+            initRadar(); 
+            updateChart(); 
+        };
     </script>
 </body>
 </html>
