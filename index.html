@@ -131,8 +131,9 @@
         }
 
         .metrics {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             gap: 15px;
             margin-bottom: 25px;
         }
@@ -143,6 +144,67 @@
             padding: 15px;
             border-radius: 4px;
             text-align: center;
+            width: 100%;
+        }
+
+        .metric-card-graph {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .expandable-section {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .expandable-header {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #30363d;
+            user-select: none;
+            transition: all 0.3s ease;
+        }
+
+        .expandable-header:hover {
+            background: rgba(0, 210, 255, 0.1);
+            border-bottom-color: var(--neon-blue);
+        }
+
+        .expandable-header span {
+            font-size: 0.8rem;
+            color: var(--neon-blue);
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .expand-icon {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+            color: var(--matrix-green);
+        }
+
+        .expandable-section.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        .expandable-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .expandable-section.expanded .expandable-content {
+            max-height: 300px;
+            padding: 15px;
         }
 
         .metric-value {
@@ -615,32 +677,38 @@
             <!-- Notificações serão adicionadas aqui -->
         </div>
 
-        <<div class="metrics">
-    <div class="metric-card" style="grid-column: span 2;">
+        <div class="metrics">
+    <div class="metric-card metric-card-graph">
         <span class="metric-label">Monitor de Biometria Emocional</span>
-        <div style="height: 250px; margin-top: 10px;">
+        <div style="height: 300px; margin-top: 10px;">
             <canvas id="radarChart"></canvas>
         </div>
     </div>
 
-    <div class="metric-card" style="grid-column: span 2; text-align: left;">
-    <span class="metric-label">Atualizar Meus Status</span>
-    <div id="controls-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
-        <div class="control-group">
-            <label style="font-size: 0.6rem; color: var(--text-gray);">FOME</label>
-            <input type="range" class="status-slider" data-index="0" min="0" max="100" value="50">
+    <div class="expandable-section" id="expandable-controls">
+        <div class="expandable-header">
+            <span>Atualizar Meus Status</span>
+            <span class="expand-icon">▼</span>
         </div>
-        <div class="control-group">
-            <label style="font-size: 0.6rem; color: var(--text-gray);">PACIÊNCIA</label>
-            <input type="range" class="status-slider" data-index="1" min="0" max="100" value="50">
-        </div>
-        <div class="control-group">
-            <label style="font-size: 0.6rem; color: var(--text-gray);">SAUDADE</label>
-            <input type="range" class="status-slider" data-index="2" min="0" max="100" value="50">
-        </div>
-        <div class="control-group">
-            <label style="font-size: 0.6rem; color: var(--text-gray);">ENERGIA</label>
-            <input type="range" class="status-slider" data-index="3" min="0" max="100" value="50">
+        <div class="expandable-content">
+            <div id="controls-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="control-group">
+                    <label style="font-size: 0.6rem; color: var(--text-gray);">FOME</label>
+                    <input type="range" class="status-slider" data-index="0" min="0" max="100" value="50">
+                </div>
+                <div class="control-group">
+                    <label style="font-size: 0.6rem; color: var(--text-gray);">PACIÊNCIA</label>
+                    <input type="range" class="status-slider" data-index="1" min="0" max="100" value="50">
+                </div>
+                <div class="control-group">
+                    <label style="font-size: 0.6rem; color: var(--text-gray);">SAUDADE</label>
+                    <input type="range" class="status-slider" data-index="2" min="0" max="100" value="50">
+                </div>
+                <div class="control-group">
+                    <label style="font-size: 0.6rem; color: var(--text-gray);">ENERGIA</label>
+                    <input type="range" class="status-slider" data-index="3" min="0" max="100" value="50">
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -813,6 +881,25 @@
                 currentUserSpan.innerText = e.target.value === 'juan' ? 'Juan' : 'Miciliane';
                 renderClauses();
                 updateNotifications();
+                updateChart();
+            });
+        });
+
+        // Expandable section
+        const expandableSection = document.getElementById('expandable-controls');
+        if (expandableSection) {
+            expandableSection.addEventListener('click', () => {
+                expandableSection.classList.toggle('expanded');
+            });
+        }
+
+        // Status sliders
+        const statusSliders = document.querySelectorAll('.status-slider');
+        statusSliders.forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                state.biometria[state.currentUser][index] = parseInt(e.target.value);
+                updateChart();
             });
         });
 
@@ -1085,42 +1172,42 @@
 
         let myRadarChart;
 
-function initRadar() {
-    const ctx = document.getElementById('radarChart').getContext('2d');
-    myRadarChart = new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: ['Fome', 'Paciência', 'Saudade', 'Energia', 'Amor'],
-            datasets: [
-                { label: 'Juan', data: state.biometria.juan, borderColor: '#00ff41', backgroundColor: 'rgba(0, 255, 65, 0.2)', borderWidth: 2 },
-                { label: 'Miciliane', data: state.biometria.miciliane, borderColor: '#00d2ff', backgroundColor: 'rgba(0, 210, 255, 0.2)', borderWidth: 2 }
-            ]
-        },
-        options: {
-            scales: { r: { suggestedMin: 0, suggestedMax: 100, grid: { color: '#30363d' }, angleLines: { color: '#30363d' }, pointLabels: { color: '#8b949e' }, ticks: { display: false } } },
-            plugins: { legend: { labels: { color: '#c9d1d9', font: { family: 'Courier New' } } } }
+        function initRadar() {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            myRadarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Fome', 'Paciência', 'Saudade', 'Energia', 'Amor'],
+                    datasets: [
+                        { label: 'Juan', data: state.biometria.juan, borderColor: '#00ff41', backgroundColor: 'rgba(0, 255, 65, 0.2)', borderWidth: 2 },
+                        { label: 'Miciliane', data: state.biometria.miciliane, borderColor: '#00d2ff', backgroundColor: 'rgba(0, 210, 255, 0.2)', borderWidth: 2 }
+                    ]
+                },
+                options: {
+                    scales: { r: { suggestedMin: 0, suggestedMax: 100, grid: { color: '#30363d' }, angleLines: { color: '#30363d' }, pointLabels: { color: '#8b949e' }, ticks: { display: false } } },
+                    plugins: { legend: { labels: { color: '#c9d1d9', font: { family: 'Courier New' } } } }
+                }
+            });
         }
-    });
-}
 
-// Escuta os sliders para atualizar o gráfico e salvar
-document.querySelectorAll('.status-slider').forEach(slider => {
-    slider.addEventListener('input', (e) => {
-        const index = e.target.dataset.index;
-        const val = parseInt(e.target.value);
-        const datasetIndex = state.currentUser === 'juan' ? 0 : 1;
-        
-        state.biometria[state.currentUser][index] = val;
-        myRadarChart.data.datasets[datasetIndex].data = state.biometria[state.currentUser];
-        myRadarChart.update();
-        saveData(); // Envia para o Firebase
-    });
-});
+        function updateChart() {
+            if (myRadarChart) {
+                const datasetIndex = state.currentUser === 'juan' ? 0 : 1;
+                myRadarChart.data.datasets[datasetIndex].data = state.biometria[state.currentUser];
+                myRadarChart.update();
+                
+                // Atualizar sliders com os valores atuais
+                const sliders = document.querySelectorAll('.status-slider');
+                sliders.forEach((slider, idx) => {
+                    slider.value = state.biometria[state.currentUser][idx];
+                });
+            }
+        }
 
-// Chame initRadar() no final do carregamento
-window.addEventListener('load', () => {
-    setTimeout(initRadar, 1500); // Dá um tempo para o Firebase carregar os dados primeiro
-});
+        // Chame initRadar() no final do carregamento
+        window.addEventListener('load', () => {
+            setTimeout(initRadar, 1500); // Dá um tempo para o Firebase carregar os dados primeiro
+        });
 
 
     </script>
