@@ -552,7 +552,21 @@
         .modal-content::-webkit-scrollbar-thumb:hover {
             background: var(--matrix-green);
         }
+
+        .status-slider {
+         width: 100%;
+            accent-color: var(--neon-blue);
+         cursor: pointer;
+         background: #161b22;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -601,16 +615,36 @@
             <!-- Notificações serão adicionadas aqui -->
         </div>
 
-        <div class="metrics">
-            <div class="metric-card">
-                <span class="metric-label">Uptime do Amor</span>
-                <span class="metric-value" id="uptime-val">00:00:00</span>
-            </div>
-            <div class="metric-card">
-                <span class="metric-label">Servidor de Paciência</span>
-                <span class="metric-value">ESTÁVEL</span>
-            </div>
+        <<div class="metrics">
+    <div class="metric-card" style="grid-column: span 2;">
+        <span class="metric-label">Monitor de Biometria Emocional</span>
+        <div style="height: 250px; margin-top: 10px;">
+            <canvas id="radarChart"></canvas>
         </div>
+    </div>
+
+    <div class="metric-card" style="grid-column: span 2; text-align: left;">
+    <span class="metric-label">Atualizar Meus Status</span>
+    <div id="controls-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+        <div class="control-group">
+            <label style="font-size: 0.6rem; color: var(--text-gray);">FOME</label>
+            <input type="range" class="status-slider" data-index="0" min="0" max="100" value="50">
+        </div>
+        <div class="control-group">
+            <label style="font-size: 0.6rem; color: var(--text-gray);">PACIÊNCIA</label>
+            <input type="range" class="status-slider" data-index="1" min="0" max="100" value="50">
+        </div>
+        <div class="control-group">
+            <label style="font-size: 0.6rem; color: var(--text-gray);">SAUDADE</label>
+            <input type="range" class="status-slider" data-index="2" min="0" max="100" value="50">
+        </div>
+        <div class="control-group">
+            <label style="font-size: 0.6rem; color: var(--text-gray);">ENERGIA</label>
+            <input type="range" class="status-slider" data-index="3" min="0" max="100" value="50">
+        </div>
+    </div>
+</div>
+
 
         <div class="clauses" id="clauses-container">
             <!-- Cláusulas serão adicionadas aqui -->
@@ -657,7 +691,8 @@
             clauses: JSON.parse(JSON.stringify(defaultClauses)),
             pendingEdits: {},
             checkboxes: {},
-            firebaseReady: false
+            firebaseReady: false,
+            biometria: { juan: [50, 80, 70, 60, 100], miciliane: [40, 70, 90, 50, 100] }
         };
 
         // Elementos do DOM
@@ -1047,6 +1082,47 @@
                 updateNotifications();
             }
         }, 100);
+
+        let myRadarChart;
+
+function initRadar() {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    myRadarChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['Fome', 'Paciência', 'Saudade', 'Energia', 'Amor'],
+            datasets: [
+                { label: 'Juan', data: state.biometria.juan, borderColor: '#00ff41', backgroundColor: 'rgba(0, 255, 65, 0.2)', borderWidth: 2 },
+                { label: 'Miciliane', data: state.biometria.miciliane, borderColor: '#00d2ff', backgroundColor: 'rgba(0, 210, 255, 0.2)', borderWidth: 2 }
+            ]
+        },
+        options: {
+            scales: { r: { suggestedMin: 0, suggestedMax: 100, grid: { color: '#30363d' }, angleLines: { color: '#30363d' }, pointLabels: { color: '#8b949e' }, ticks: { display: false } } },
+            plugins: { legend: { labels: { color: '#c9d1d9', font: { family: 'Courier New' } } } }
+        }
+    });
+}
+
+// Escuta os sliders para atualizar o gráfico e salvar
+document.querySelectorAll('.status-slider').forEach(slider => {
+    slider.addEventListener('input', (e) => {
+        const index = e.target.dataset.index;
+        const val = parseInt(e.target.value);
+        const datasetIndex = state.currentUser === 'juan' ? 0 : 1;
+        
+        state.biometria[state.currentUser][index] = val;
+        myRadarChart.data.datasets[datasetIndex].data = state.biometria[state.currentUser];
+        myRadarChart.update();
+        saveData(); // Envia para o Firebase
+    });
+});
+
+// Chame initRadar() no final do carregamento
+window.addEventListener('load', () => {
+    setTimeout(initRadar, 1500); // Dá um tempo para o Firebase carregar os dados primeiro
+});
+
+
     </script>
 </body>
 </html>
