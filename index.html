@@ -133,9 +133,11 @@
         .metrics {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: center; /* Centraliza horizontalmente os itens */
+            justify-content: center; /* Garante a centralização no eixo principal */
             gap: 15px;
             margin-bottom: 25px;
+            width: 100%; /* Ocupa a largura total do dashboard */
         }
 
         .metric-card {
@@ -150,6 +152,9 @@
         .metric-card-graph {
             width: 100%;
             max-width: 500px;
+            display: flex;
+            flex-direction: column;
+        align-items: center;
         }
 
         .expandable-section {
@@ -677,11 +682,10 @@
             <!-- Notificações serão adicionadas aqui -->
         </div>
 
-        <div class="metrics">
-    <div class="metric-card metric-card-graph">
-        <span class="metric-label">Monitor de Biometria Emocional</span>
-        <div style="height: 300px; margin-top: 10px;">
-            <canvas id="radarChart"></canvas>
+         <div class="metric-card metric-card-graph">
+     <span class="metric-label">Monitor de Biometria Emocional</span>
+        <div style="height: 300px; width: 100%; display: flex; justify-content: center; margin-top: 10px;">
+          <canvas id="radarChart"></canvas>
         </div>
     </div>
 
