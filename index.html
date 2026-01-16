@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TACP - Contrato 2026 | Tempo Real com Firebase</title>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js?v=2"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js?v=2"></script>
+    <title>TACP - Contrato 2026 | Login por Nome</title>
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
     <style>
         :root {
             --bg-color: #0a0b10;
@@ -28,21 +30,61 @@
             padding: 10px;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
+            align-items: center;
             min-height: 100vh;
             overflow-x: hidden;
         }
 
-        .dashboard {
+        /* TELA DE LOGIN */
+        #login-screen {
+            width: 100%;
+            max-width: 400px;
+            background: var(--card-bg);
+            border: 1px solid var(--neon-blue);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.2);
+            text-align: center;
+        }
+
+        #login-screen h2 { color: var(--neon-blue); margin-bottom: 20px; letter-spacing: 2px; }
+
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-size: 0.7rem; color: var(--text-gray); margin-bottom: 5px; }
+        .input-group input, .input-group select {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #30363d;
+            padding: 12px;
+            color: white;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        .input-group input:focus { border-color: var(--neon-blue); outline: none; }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 1px solid var(--matrix-green);
+            color: var(--matrix-green);
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+        .btn-login:hover { background: var(--matrix-green); color: black; }
+
+        /* DASHBOARD */
+        #dashboard {
+            display: none;
             width: 100%;
             max-width: 800px;
             background: var(--card-bg);
             border: 1px solid var(--neon-blue);
-            box-shadow: 0 0 20px rgba(0, 210, 255, 0.2);
             padding: 20px;
             border-radius: 8px;
             margin: 20px auto;
-            display: flex;
             flex-direction: column;
             gap: 20px;
         }
@@ -57,86 +99,34 @@
             gap: 15px;
         }
 
-        h1 {
-            color: var(--neon-blue);
-            font-size: clamp(1.2rem, 5vw, 1.8rem);
-            margin: 0;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
+        h1 { color: var(--neon-blue); font-size: clamp(1.1rem, 4vw, 1.6rem); margin: 0; text-transform: uppercase; }
 
-        .system-status {
-            font-size: 0.8rem;
-            text-align: right;
-            flex-grow: 1;
-        }
-
-        .status-item { margin-bottom: 5px; }
+        .system-status { font-size: 0.75rem; text-align: right; flex-grow: 1; }
         .status-online { color: var(--matrix-green); }
 
-        .firebase-status {
-            font-size: 0.7rem;
-            padding: 10px;
-            border-radius: 4px;
-            background: rgba(0, 255, 65, 0.1);
-            border: 1px solid var(--matrix-green);
-            text-align: center;
-        }
-
-        .firebase-status.disconnected {
-            background: rgba(255, 51, 51, 0.1);
-            border-color: var(--alert-red);
-        }
-
-        .user-selector {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid #30363d;
-            padding: 15px;
-            border-radius: 4px;
-            font-size: 0.85rem;
+        .user-info-bar {
             display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-        }
-
-        .user-selector label {
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .user-selector input[type="radio"] { accent-color: var(--matrix-green); }
-
-        .notifications {
-            background: rgba(255, 204, 0, 0.1);
-            border: 1px solid var(--warning-yellow);
-            padding: 12px;
+            background: rgba(0,0,0,0.3);
+            padding: 10px 15px;
             border-radius: 4px;
-            display: none;
-        }
-
-        .notifications.active { display: block; }
-
-        .notification-item {
             font-size: 0.8rem;
-            color: var(--warning-yellow);
-            padding: 8px;
-            background: rgba(0, 0, 0, 0.3);
-            border-left: 3px solid var(--warning-yellow);
+            border: 1px solid #30363d;
         }
 
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
+        .btn-logout {
+            background: none;
+            border: 1px solid var(--alert-red);
+            color: var(--alert-red);
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            border-radius: 3px;
         }
 
-        @media (min-width: 768px) {
-            .main-grid { grid-template-columns: 1.2fr 0.8fr; }
-        }
+        .main-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        @media (min-width: 768px) { .main-grid { grid-template-columns: 1.2fr 0.8fr; } }
 
         .metric-card-graph {
             background: rgba(0, 0, 0, 0.3);
@@ -146,252 +136,46 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 100%;
         }
 
-        .chart-container {
-            position: relative;
-            height: 300px;
-            width: 100%;
-            max-width: 400px;
-            margin-top: 10px;
-        }
+        .chart-container { position: relative; height: 250px; width: 100%; max-width: 350px; }
 
-        .expandable-section {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid #30363d;
-            border-radius: 4px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            width: 100%;
-        }
+        .expandable-section { background: rgba(0, 0, 0, 0.3); border: 1px solid #30363d; border-radius: 4px; overflow: hidden; }
+        .expandable-header { padding: 12px; background: rgba(0, 0, 0, 0.5); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .expandable-content { max-height: 0; overflow: hidden; transition: 0.3s; }
+        .expandable-section.expanded .expandable-content { max-height: 500px; padding: 15px; }
 
-        .expandable-header {
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.5);
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #30363d;
-            user-select: none;
-        }
+        .status-slider { width: 100%; accent-color: var(--neon-blue); cursor: pointer; margin: 10px 0; }
 
-        .expandable-header span {
-            font-size: 0.8rem;
-            color: var(--neon-blue);
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .expand-icon {
-            font-size: 1rem;
-            transition: transform 0.3s ease;
-            color: var(--matrix-green);
-        }
-
-        .expandable-section.expanded .expand-icon { transform: rotate(180deg); }
-
-        .expandable-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-
-        .expandable-section.expanded .expandable-content {
-            max-height: 500px;
-            padding: 15px;
-        }
-
-        .status-slider {
-            width: 100%;
-            accent-color: var(--neon-blue);
-            cursor: pointer;
-            margin: 10px 0;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            margin-bottom: 15px;
-        }
-
-        .clauses {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
+        .clauses { display: flex; flex-direction: column; gap: 12px; }
         .clause-item {
             background: rgba(255, 255, 255, 0.03);
             border-left: 4px solid var(--neon-blue);
             padding: 15px;
-            transition: all 0.3s ease;
             display: flex;
             align-items: flex-start;
             cursor: pointer;
             border-radius: 0 4px 4px 0;
         }
+        .clause-item.pending-edit { border-left-color: var(--warning-yellow); }
+        .clause-checkbox { margin-right: 12px; width: 20px; height: 20px; accent-color: var(--matrix-green); flex-shrink: 0; }
+        .clause-content h3 { margin: 0 0 5px 0; font-size: 0.9rem; color: var(--neon-blue); }
+        .clause-content p { margin: 0; font-size: 0.8rem; color: var(--text-gray); }
 
-        .clause-item:hover {
-            background: rgba(255, 255, 255, 0.07);
-            transform: translateX(5px);
-        }
-
-        .clause-item.pending-edit {
-            border-left-color: var(--warning-yellow);
-            background: rgba(255, 204, 0, 0.05);
-        }
-
-        .clause-checkbox {
-            margin-right: 15px;
-            margin-top: 3px;
-            cursor: pointer;
-            width: 22px;
-            height: 22px;
-            accent-color: var(--matrix-green);
-            flex-shrink: 0;
-        }
-
-        .clause-content { flex: 1; }
-        .clause-content h3 { margin: 0 0 8px 0; font-size: 1rem; color: var(--neon-blue); }
-        .clause-content p { margin: 0; font-size: 0.9rem; line-height: 1.5; color: var(--text-gray); }
-
-        .edit-badge {
-            background: var(--warning-yellow);
-            color: #000;
-            font-size: 0.6rem;
-            padding: 2px 5px;
-            border-radius: 3px;
-            margin-left: 5px;
-            font-weight: bold;
-        }
-
-        .deploy-section {
-            text-align: center;
-            border-top: 1px solid #30363d;
-            padding-top: 30px;
-            margin-top: 10px;
-        }
-
-        #btn-deploy {
-            background: transparent;
-            border: 2px solid var(--neon-blue);
-            color: var(--neon-blue);
-            padding: 15px 30px;
-            font-size: 1.1rem;
-            font-family: inherit;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            width: 100%;
-            max-width: 300px;
-        }
-
-        #btn-deploy:hover:not(:disabled) {
-            background: var(--neon-blue);
-            color: var(--bg-color);
-            box-shadow: 0 0 20px var(--neon-blue);
-        }
-
-        #btn-deploy:disabled { border-color: #30363d; color: #30363d; cursor: not-allowed; }
-
-        #terminal-log {
-            margin-top: 20px;
-            background: #000;
-            color: var(--matrix-green);
-            font-family: 'Courier New', monospace;
-            font-size: 0.75rem;
-            padding: 15px;
-            border-radius: 4px;
-            text-align: left;
-            height: 150px;
-            overflow-y: auto;
-            display: none;
-            border: 1px solid #333;
-        }
-
-        .success-msg {
-            margin-top: 20px;
-            color: var(--matrix-green);
-            font-weight: bold;
-            display: none;
-            padding: 20px;
-            border: 2px dashed var(--matrix-green);
-            background: rgba(0, 255, 65, 0.05);
-        }
+        .edit-badge { background: var(--warning-yellow); color: #000; font-size: 0.6rem; padding: 2px 5px; border-radius: 3px; margin-left: 5px; font-weight: bold; }
 
         .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            padding: 20px;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px;
         }
-
         .modal-overlay.active { display: flex; }
-
-        .modal-content {
-            background: var(--card-bg);
-            border: 1px solid var(--neon-blue);
-            width: 100%;
-            max-width: 500px;
-            border-radius: 8px;
-            max-height: 90vh;
-            overflow-y: auto;
-            position: relative;
-        }
-
-        .modal-header {
-            padding: 15px 20px;
-            border-bottom: 1px solid #30363d;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            background: var(--card-bg);
-            z-index: 10;
-        }
-
-        .modal-close { background: none; border: none; color: var(--text-gray); font-size: 1.5rem; cursor: pointer; }
-        .modal-body { padding: 20px; }
-
-        .edit-controls textarea {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--neon-blue);
-            color: var(--text-white);
-            padding: 12px;
-            font-family: inherit;
-            font-size: 0.9rem;
-            resize: vertical;
-            min-height: 120px;
-            border-radius: 4px;
-            margin-top: 10px;
-        }
-
-        .edit-buttons, .approval-buttons { display: flex; gap: 10px; margin-top: 15px; }
-        .edit-buttons button, .approval-buttons button {
-            flex: 1; padding: 12px; border: 1px solid var(--neon-blue); background: transparent;
-            color: var(--neon-blue); cursor: pointer; font-family: inherit; font-size: 0.85rem;
-            border-radius: 4px; transition: all 0.3s;
-        }
-
-        .btn-save, .btn-approve { border-color: var(--matrix-green) !important; color: var(--matrix-green) !important; }
-        .btn-cancel, .btn-reject { border-color: var(--alert-red) !important; color: var(--alert-red) !important; }
-        .btn-save:hover, .btn-approve:hover { background: var(--matrix-green) !important; color: var(--bg-color) !important; }
-        .btn-cancel:hover, .btn-reject:hover { background: var(--alert-red) !important; color: var(--bg-color) !important; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--neon-blue); width: 100%; max-width: 500px; border-radius: 8px; padding: 20px; max-height: 90vh; overflow-y: auto; }
+        
+        textarea { width: 100%; height: 100px; background: #000; color: white; border: 1px solid var(--neon-blue); padding: 10px; margin-top: 10px; font-family: inherit; resize: vertical; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 15px; }
+        .modal-buttons button { flex: 1; padding: 10px; cursor: pointer; border: 1px solid; background: none; font-family: inherit; border-radius: 4px; }
+        .btn-save { border-color: var(--matrix-green); color: var(--matrix-green); }
+        .btn-cancel { border-color: var(--alert-red); color: var(--alert-red); }
 
         #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2000; }
     </style>
@@ -401,105 +185,81 @@
 
     <canvas id="confetti"></canvas>
 
-    <div class="modal-overlay" id="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-title" style="font-size: 1.1rem; color: var(--neon-blue); margin: 0;">Cláusula</h2>
-                <button class="modal-close" id="modal-close">&times;</button>
-            </div>
-            <div class="modal-body" id="modal-body"></div>
+    <!-- TELA DE LOGIN -->
+    <div id="login-screen">
+        <h2>TACP ACCESS</h2>
+        <div class="input-group">
+            <label>USUÁRIO</label>
+            <select id="login-user">
+                <option value="juan">Juan</option>
+                <option value="mici">Mici</option>
+            </select>
         </div>
+        <div class="input-group">
+            <label>SENHA</label>
+            <input type="password" id="login-password" placeholder="••••••••">
+        </div>
+        <button class="btn-login" onclick="handleLogin()">ENTRAR NO SISTEMA</button>
+        <p id="login-error" style="color: var(--alert-red); font-size: 0.7rem; margin-top: 10px; display: none;"></p>
     </div>
 
-    <div class="dashboard">
+    <!-- DASHBOARD -->
+    <div id="dashboard">
         <header>
             <div>
                 <h1>Contrato 2026</h1>
-                <div style="font-size: 0.7rem; color: var(--text-gray); margin-top: 5px;">AUDITORIA: CONDENADA | STATUS: EM PRODUÇÃO</div>
+                <div style="font-size: 0.6rem; color: var(--text-gray);">STATUS: ENCRYPTED | REAL-TIME</div>
             </div>
             <div class="system-status">
-                <div class="status-item">SLA: <span class="status-online">99.99%</span></div>
-                <div class="status-item">UPTIME: <span id="uptime-val" class="status-online">00:00:00</span></div>
+                <div>DISTÂNCIA: <span id="distancia-val" class="status-online">Calculando...</span></div>
+                <div>UPTIME: <span id="uptime-val" class="status-online">00:00:00</span></div>
             </div>
         </header>
 
-        <div class="firebase-status" id="firebase-status">🔄 Conectando ao Firebase...</div>
-
-        <div class="user-selector">
-            <label><input type="radio" name="user" value="juan" checked> Juan (Contratante)</label>
-            <label><input type="radio" name="user" value="miciliane"> Miciliane (Contratada)</label>
-            <div style="width: 100%; text-align: center; margin-top: 5px; color: var(--text-gray); font-size: 0.75rem;">
-                Modo Ativo: <span id="current-user" style="color: var(--neon-blue); font-weight: bold;">Juan</span>
-            </div>
+        <div class="user-info-bar">
+            <span>USUÁRIO ATIVO: <span id="display-user" style="color: var(--neon-blue); font-weight: bold;">---</span></span>
+            <button class="btn-logout" onclick="handleLogout()">SAIR</button>
         </div>
-
-        <div class="notifications" id="notifications"></div>
 
         <div class="main-grid">
             <div class="metric-card-graph">
-                <span style="font-size: 0.7rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 1px;">Monitor de Biometria Emocional</span>
+                <span style="font-size: 0.6rem; color: var(--text-gray); text-transform: uppercase;">Biometria Emocional</span>
                 <div class="chart-container"><canvas id="radarChart"></canvas></div>
             </div>
 
             <div class="expandable-section" id="expandable-controls">
-                <div class="expandable-header"><span>Atualizar Meus Status</span><span class="expand-icon">▼</span></div>
+                <div class="expandable-header"><span>MEUS STATUS</span><span>▼</span></div>
                 <div class="expandable-content">
-                    <div class="control-group"><label style="font-size: 0.6rem; color: var(--text-gray);">FOME</label><input type="range" class="status-slider" data-index="0" min="0" max="100" value="50"></div>
-                    <div class="control-group"><label style="font-size: 0.6rem; color: var(--text-gray);">PACIÊNCIA</label><input type="range" class="status-slider" data-index="1" min="0" max="100" value="50"></div>
-                    <div class="control-group"><label style="font-size: 0.6rem; color: var(--text-gray);">SAUDADE</label><input type="range" class="status-slider" data-index="2" min="0" max="100" value="50"></div>
-                    <div class="control-group"><label style="font-size: 0.6rem; color: var(--text-gray);">ENERGIA</label><input type="range" class="status-slider" data-index="3" min="0" max="100" value="50"></div>
+                    <div class="control-group"><label style="font-size: 0.6rem;">FOME</label><input type="range" class="status-slider" data-index="0" min="0" max="100"></div>
+                    <div class="control-group"><label style="font-size: 0.6rem;">PACIÊNCIA</label><input type="range" class="status-slider" data-index="1" min="0" max="100"></div>
+                    <div class="control-group"><label style="font-size: 0.6rem;">SAUDADES</label><input type="range" class="status-slider" data-index="2" min="0" max="100"></div>
+                    <div class="control-group"><label style="font-size: 0.6rem;">FELICIDADE</label><input type="range" class="status-slider" data-index="3" min="0" max="100"></div>
+                    <div class="control-group"><label style="font-size: 0.6rem;">TRISTEZA</label><input type="range" class="status-slider" data-index="4" min="0" max="100"></div>
                 </div>
             </div>
         </div>
 
         <div class="clauses" id="clauses-container"></div>
 
-        <div class="deploy-section">
-            <button id="btn-deploy" disabled>ASSINAR CONTRATO</button>
-            <div id="terminal-log"></div>
-            <div class="success-msg" id="final-msg">
-                CONTRATO HOMOLOGADO COM SUCESSO!<br><br>
-                Miciliane Vaz de Melo, a opção 1 é oficialmente a mais viável.
+        <div style="text-align: center; margin-top: 20px;">
+            <button id="btn-deploy" style="width: 100%; padding: 15px; border: 1px solid var(--neon-blue); background: none; color: var(--neon-blue); font-weight: bold; cursor: pointer;" disabled>ASSINAR CONTRATO</button>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <h3 id="modal-title" style="color: var(--neon-blue); margin-top: 0;"></h3>
+            <div id="modal-body" style="font-size: 0.85rem; line-height: 1.5;"></div>
+            <div id="modal-action-area"></div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeModal()">FECHAR</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Conteúdo padrão das cláusulas (ORIGINAL)
-        const defaultClauses = {
-            1: {
-                title: "CLÁUSULA 1 – DA DISPONIBILIDADE (DOMINGOS E FERIADOS)",
-                content: "Fica estabelecido que o Contratante continuará exercendo suas funções de quebra-galho oficial, incluindo, mas não se limitando a: Idas emergenciais à farmácia para compra de absorventes e outros itens de primeira necessidade, Suporte 24/7 para emergências domésticas aos domingos, Sem direito a reclamação trabalhista."
-            },
-            2: {
-                title: "CLÁUSULA 2 – DA CLÁUSULA ANTI-RESCISÃO",
-                content: "Conforme acordado previamente via WhatsApp, a Contratada optou pela opção Você por completa em vez do jogo de panelas. Fica proibida qualquer tentativa de rescisão de contrato (vulgo se separar). Contrato por tempo indeterminado, Sem multa de saída (porque a saída não é uma opção), Irrevogável e sem direito a rollback."
-            },
-            3: {
-                title: "CLÁUSULA 3 – DOS HONORÁRIOS E COMPENSAÇÃO (COMBO LAZER)",
-                content: "Para compensar a carga horária do Contratante, a Contratada pagará o salário através do seguinte pacote: Suporte de Paciência em níveis industriais, 01 final de semana por mês para dormir na residência do Contratante, Regime: Zero Segundas Intenções, Maratonar séries/filmes, Alimentação de Contingência: Direito a lanches."
-            },
-            4: {
-                title: "CLÁUSULA 4 – DAS PENALIDADES",
-                content: "Violação do Zero Segundas Intenções: Massagem Completa (mínimo 30 minutos) ou arcar com delivery. Abandono do Fazer Nada: Multa de 01 lanche. Multa Rescisória (Jogo de Panelas): 01 Jogo de Panelas de Pressão de cerâmica ou antiaderente de alta qualidade. Recusa de Ida à Farmácia: Perde direito de reclamar."
-            },
-            5: {
-                title: "CLÁUSULA 5 – DISPOSIÇÕES GERAIS",
-                content: "O acordo sério será discutido em reunião oficial, que poderá ocorrer de forma presencial ou remota. Pauta: Leitura minuciosa e análise técnica de cada cláusula. Irretratabilidade: A Contratada fica impedida de dar para trás ou apresentar desistência."
-            }
-        };
-
-        // Estado global (ORIGINAL)
-        const state = {
-            currentUser: 'juan',
-            clauses: JSON.parse(JSON.stringify(defaultClauses)),
-            pendingEdits: {},
-            checkboxes: {},
-            firebaseReady: false,
-            biometria: { juan: [50, 80, 70, 60, 100], miciliane: [40, 70, 90, 50, 100] }
-        };
-
-        // Configuração Firebase (ORIGINAL)
+        // CONFIGURAÇÃO FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyDeXp1gHm2cyd0MPRbyj7NMm0HlnlI9tCE",
             authDomain: "contrato-online.firebaseapp.com",
@@ -507,226 +267,160 @@
             projectId: "contrato-online",
             storageBucket: "contrato-online.firebasestorage.app",
             messagingSenderId: "707541071284",
-            appId: "1:707541071284:web:6bc61a769477e24feeaee1",
-            measurementId: "G-0BV1XCBPGG"
+            appId: "1:707541071284:web:6bc61a769477e24feeaee1"
         };
 
-        // Elementos do DOM
-        const clausesContainer = document.getElementById('clauses-container');
-        const firebaseStatusDiv = document.getElementById('firebase-status');
-        const currentUserSpan = document.getElementById('current-user');
-        const notificationsDiv = document.getElementById('notifications');
-        const btnDeploy = document.getElementById('btn-deploy');
-        const terminal = document.getElementById('terminal-log');
-        const finalMsg = document.getElementById('final-msg');
-        const uptimeEl = document.getElementById('uptime-val');
-        const modal = document.getElementById('modal');
-        const modalBody = document.getElementById('modal-body');
-        const modalTitle = document.getElementById('modal-title');
-        const modalClose = document.getElementById('modal-close');
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
 
-        // Inicializar Firebase (ORIGINAL)
-        function initFirebase() {
-            if (typeof firebase === 'undefined') {
-                firebaseStatusDiv.textContent = '⚠️ Modo Local (Biblioteca não carregou)';
-                firebaseStatusDiv.classList.add('disconnected');
-                loadLocalData(); renderClauses(); return;
-            }
+        const defaultClauses = {
+            1: { title: "CLÁUSULA 1 – DA DISPONIBILIDADE (DOMINGOS E FERIADOS)", content: "Fica estabelecido que o Contratante continuará exercendo suas funções de quebra-galho oficial, incluindo, mas não se limitando a: Idas emergenciais à farmácia para compra de absorventes e outros itens de primeira necessidade, Suporte 24/7 para emergências domésticas aos domingos, Sem direito a reclamação trabalhista." },
+            2: { title: "CLÁUSULA 2 – DA CLÁUSULA ANTI-RESCISÃO", content: "Conforme acordado previamente via WhatsApp, a Contratada optou pela opção Você por completa em vez do jogo de panelas. Fica proibida qualquer tentativa de rescisão de contrato (vulgo se separar). Contrato por tempo indeterminado, Sem multa de saída (porque a saída não é uma opção), Irrevogável e sem direito a rollback." },
+            3: { title: "CLÁUSULA 3 – DOS HONORÁRIOS E COMPENSAÇÃO (COMBO LAZER)", content: "Para compensar a carga horária do Contratante, a Contratada pagará o salário através do seguinte pacote: Suporte de Paciência em níveis industriais, 01 final de semana por mês para dormir na residência do Contratante, Regime: Zero Segundas Intenções, Maratonar séries/filmes, Alimentação de Contingência: Direito a lanches." },
+            4: { title: "CLÁUSULA 4 – DAS PENALIDADES", content: "Violação do Zero Segundas Intenções: Massagem Completa (mínimo 30 minutos) ou arcar com delivery. Abandono do Fazer Nada: Multa de 01 lanche. Multa Rescisória (Jogo de Panelas): 01 Jogo de Panelas de Pressão de cerâmica ou antiaderente de alta qualidade. Recusa de Ida à Farmácia: Perde direito de reclamar." },
+            5: { title: "CLÁUSULA 5 – DISPOSIÇÕES GERAIS", content: "O acordo sério será discutido em reunião oficial, que poderá ocorrer de forma presencial ou remota. Pauta: Leitura minuciosa e análise técnica de cada cláusula. Irretratabilidade: A Contratada fica impedida de dar para trás ou apresentar desistência." }
+        };
+
+        let state = {
+            currentUser: null,
+            clauses: JSON.parse(JSON.stringify(defaultClauses)),
+            pendingEdits: {},
+            checkboxes: {},
+            biometria: { juan: [50,80,70,60,100], mici: [40,70,90,50,100] },
+            locations: { juan: {lat:0, lon:0}, mici: {lat:0, lon:0} }
+        };
+
+        // LOGIN POR NOME
+        async function handleLogin() {
+            const user = document.getElementById('login-user').value;
+            const pass = document.getElementById('login-password').value;
+            const errorEl = document.getElementById('login-error');
+            
+            // Converte nome simples em email para o Firebase Auth
+            const email = `${user}@tacp.com`;
+
             try {
-                firebase.initializeApp(firebaseConfig);
-                const db = firebase.database();
-                const ref = db.ref('tacp_contract');
-                ref.on('value', (snapshot) => {
-                    if (snapshot.exists()) {
-                        const data = snapshot.val();
-                        state.clauses = data.clauses || state.clauses;
-                        state.pendingEdits = data.pendingEdits || {};
-                        state.checkboxes = data.checkboxes || {};
-                        renderClauses(); updateNotifications(); updateDeployButton();
-                    }
-                });
-                state.firebaseReady = true;
-                firebaseStatusDiv.textContent = '✓ Conectado ao Firebase em Tempo Real';
-                firebaseStatusDiv.classList.remove('disconnected');
+                await auth.signInWithEmailAndPassword(email, pass);
             } catch (e) {
-                firebaseStatusDiv.textContent = '⚠️ Modo Local (Erro de Conexão)';
-                firebaseStatusDiv.classList.add('disconnected');
-                loadLocalData();
+                try {
+                    await auth.createUserWithEmailAndPassword(email, pass);
+                } catch (err) {
+                    errorEl.innerText = "Erro: " + err.message;
+                    errorEl.style.display = 'block';
+                }
             }
         }
 
-        function loadLocalData() {
-            const saved = localStorage.getItem('tacp_contract');
-            if (saved) {
-                const data = JSON.parse(saved);
-                state.clauses = data.clauses || state.clauses;
-                state.pendingEdits = data.pendingEdits || {};
-                state.checkboxes = data.checkboxes || {};
+        function handleLogout() { auth.signOut(); window.location.reload(); }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                state.currentUser = user.email.split('@')[0];
+                document.getElementById('display-user').innerText = state.currentUser.toUpperCase();
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'flex';
+                initDashboard();
+            } else {
+                document.getElementById('login-screen').style.display = 'block';
+                document.getElementById('dashboard').style.display = 'none';
             }
+        });
+
+        function initDashboard() {
+            db.ref('tacp_contract').on('value', snapshot => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    state.clauses = data.clauses || state.clauses;
+                    state.pendingEdits = data.pendingEdits || {};
+                    state.checkboxes = data.checkboxes || {};
+                    state.locations = data.locations || state.locations;
+                    state.biometria = data.biometria || state.biometria;
+                    renderClauses();
+                    updateChart();
+                    atualizarPainelDistancia();
+                    updateDeployButton();
+                }
+            });
+            initRadar();
+            iniciarRastreamento();
         }
 
-        function saveData() {
-            const data = { clauses: state.clauses, pendingEdits: state.pendingEdits, checkboxes: state.checkboxes };
-            localStorage.setItem('tacp_contract', JSON.stringify(data));
-            if (state.firebaseReady) firebase.database().ref('tacp_contract').set(data);
-        }
-
-        // Renderizar cláusulas (ORIGINAL + DESIGN NOVO)
         function renderClauses() {
-            clausesContainer.innerHTML = '';
+            const container = document.getElementById('clauses-container');
+            container.innerHTML = '';
             for (let i = 1; i <= 5; i++) {
                 const clause = state.clauses[i] || defaultClauses[i];
-                const hasPendingEdit = state.pendingEdits[i];
-                
+                const hasEdit = state.pendingEdits[i];
                 const div = document.createElement('div');
-                div.className = `clause-item ${hasPendingEdit ? 'pending-edit' : ''}`;
-                
-                const preview = clause.content.substring(0, 80) + (clause.content.length > 80 ? '...' : '');
-                
+                div.className = `clause-item ${hasEdit ? 'pending-edit' : ''}`;
                 div.innerHTML = `
                     <input type="checkbox" class="clause-checkbox" ${state.checkboxes[i] ? 'checked' : ''} onclick="event.stopPropagation(); toggleCheckbox(${i}, this.checked)">
                     <div class="clause-content" onclick="openModal(${i})">
-                        <h3>
-                            ${clause.title} 
-                            ${hasPendingEdit ? '<span class="edit-badge">EDIÇÃO PENDENTE</span>' : ''}
-                        </h3>
-                        <p>${preview}</p>
+                        <h3>${clause.title} ${hasEdit ? '<span class="edit-badge">EDIÇÃO PENDENTE</span>' : ''}</h3>
+                        <p>${clause.content.substring(0, 80)}...</p>
                     </div>
                 `;
-                clausesContainer.appendChild(div);
+                container.appendChild(div);
             }
         }
 
-        window.toggleCheckbox = (i, checked) => { 
-            state.checkboxes[i] = checked; 
-            saveData(); 
-            updateDeployButton(); 
-        };
+        window.toggleCheckbox = (i, checked) => { state.checkboxes[i] = checked; saveData(); };
 
-        // Modal (ORIGINAL)
-        window.openModal = (i) => {
-            const clause = state.clauses[i] || defaultClauses[i];
-            const hasPendingEdit = state.pendingEdits[i];
-            modalTitle.innerText = clause.title;
-            
-            let bodyHTML = `<p style="line-height:1.6">${clause.content}</p>`;
-            
-            if (state.currentUser === 'miciliane') {
-                bodyHTML += `
-                    <div class="edit-controls">
-                        <h3>Propor Edição</h3>
-                        <textarea id="edit-textarea">${hasPendingEdit || clause.content}</textarea>
-                        <div class="edit-buttons">
-                            <button class="btn-save" onclick="proposeEdit(${i})">Propor Edição</button>
-                            <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
-                        </div>
-                    </div>
-                `;
-            } else if (state.currentUser === 'juan' && hasPendingEdit) {
-                bodyHTML += `
-                    <div style="margin-top:20px;padding:15px;background:rgba(255,204,0,0.1);border:1px solid var(--warning-yellow);border-radius:4px;">
-                        <h3 style="color:var(--warning-yellow);margin:0 0 10px 0">⚠️ Edição Proposta por Miciliane:</h3>
-                        <p style="font-style:italic">"${hasPendingEdit}"</p>
-                        <div class="approval-buttons">
-                            <button class="btn-approve" onclick="approveEdit(${i})">✓ Aprovar</button>
-                            <button class="btn-reject" onclick="rejectEdit(${i})">✗ Rejeitar</button>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            modalBody.innerHTML = bodyHTML; 
-            modal.classList.add('active');
-        };
+        function saveData() {
+            db.ref('tacp_contract').set({
+                clauses: state.clauses,
+                checkboxes: state.checkboxes,
+                pendingEdits: state.pendingEdits,
+                locations: state.locations,
+                biometria: state.biometria
+            });
+        }
 
-        window.closeModal = () => modal.classList.remove('active');
-        modalClose.onclick = closeModal;
-        window.onclick = (e) => { if (e.target == modal) closeModal(); };
-
-        window.proposeEdit = (i) => { 
-            const val = document.getElementById('edit-textarea').value; 
-            if (val.trim()) { 
-                state.pendingEdits[i] = val; 
-                saveData(); 
-                closeModal(); 
-                renderClauses(); 
-                updateNotifications(); 
-            } 
-        };
-
-        window.approveEdit = (i) => { 
-            state.clauses[i].content = state.pendingEdits[i]; 
-            delete state.pendingEdits[i]; 
-            saveData(); 
-            closeModal(); 
-            renderClauses(); 
-            updateNotifications(); 
-        };
-
-        window.rejectEdit = (i) => { 
-            delete state.pendingEdits[i]; 
-            saveData(); 
-            closeModal(); 
-            renderClauses(); 
-            updateNotifications(); 
-        };
-
-        function updateNotifications() {
-            const count = Object.keys(state.pendingEdits).length;
-            if (count > 0 && state.currentUser === 'juan') {
-                notificationsDiv.innerHTML = `<div class="notification-item">⚠️ Miciliane propôs ${count} alteração(ões). Verifique as cláusulas marcadas.</div>`;
-                notificationsDiv.classList.add('active');
-            } else {
-                notificationsDiv.classList.remove('active');
+        // GPS
+        function iniciarRastreamento() {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(pos => {
+                    state.locations[state.currentUser] = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+                    saveData();
+                }, null, { enableHighAccuracy: true });
             }
         }
 
-        function updateDeployButton() {
-            const checkedCount = Object.values(state.checkboxes).filter(v => v).length;
-            const hasEdits = Object.keys(state.pendingEdits).length > 0;
-            btnDeploy.disabled = checkedCount < 5 || hasEdits;
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2-lat1)*Math.PI/180;
+            const dLon = (lon2-lon1)*Math.PI/180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // Seletor de Usuário
-        document.querySelectorAll('input[name="user"]').forEach(r => r.addEventListener('change', (e) => {
-            state.currentUser = e.target.value;
-            currentUserSpan.innerText = state.currentUser === 'juan' ? 'Juan' : 'Miciliane';
-            renderClauses(); 
-            updateNotifications(); 
-            updateChart();
-        }));
+        function atualizarPainelDistancia() {
+            const l1 = state.locations.juan;
+            const l2 = state.locations.mici;
+            if (l1.lat !== 0 && l2.lat !== 0) {
+                const d = calcularDistancia(l1.lat, l1.lon, l2.lat, l2.lon);
+                document.getElementById('distancia-val').innerText = d < 1 ? (d*1000).toFixed(0)+"m" : d.toFixed(2)+"km";
+            }
+        }
 
-        // Expandir Controles
-        document.querySelector('.expandable-header').onclick = () => {
-            document.getElementById('expandable-controls').classList.toggle('expanded');
-        };
-
-        // Gráfico Radar (ORIGINAL)
+        // CHART
         let myRadarChart;
         function initRadar() {
             const ctx = document.getElementById('radarChart').getContext('2d');
             myRadarChart = new Chart(ctx, {
                 type: 'radar',
                 data: {
-                    labels: ['Fome', 'Paciência', 'Saudade', 'Energia', 'Amor'],
+                    labels: ['Fome', 'Paciência', 'Saudades', 'Felicidade', 'Tristeza'],
                     datasets: [
-                        { label: 'Juan', data: state.biometria.juan, borderColor: '#00ff41', backgroundColor: 'rgba(0, 255, 65, 0.2)', borderWidth: 2 },
-                        { label: 'Miciliane', data: state.biometria.miciliane, borderColor: '#00d2ff', backgroundColor: 'rgba(0, 210, 255, 0.2)', borderWidth: 2 }
+                        { label: 'Juan', data: state.biometria.juan, borderColor: '#00ff41', backgroundColor: 'rgba(0,255,65,0.1)' },
+                        { label: 'Mici', data: state.biometria.mici, borderColor: '#00d2ff', backgroundColor: 'rgba(0,210,255,0.1)' }
                     ]
                 },
-                options: {
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    scales: { 
-                        r: { 
-                            suggestedMin: 0, suggestedMax: 100, 
-                            grid: { color: '#30363d' }, 
-                            angleLines: { color: '#30363d' }, 
-                            pointLabels: { color: '#8b949e', font: { size: 10 } }, 
-                            ticks: { display: false } 
-                        } 
-                    },
-                    plugins: { legend: { position: 'bottom', labels: { color: '#c9d1d9', font: { family: 'Courier New', size: 10 } } } }
+                options: { 
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { r: { grid: {color:'#333'}, ticks: {display:false}, pointLabels: {color:'#8b949e'} } },
+                    plugins: { legend: { labels: {color:'#fff', font:{size:10}} } }
                 }
             });
         }
@@ -734,96 +428,70 @@
         function updateChart() {
             if (myRadarChart) {
                 myRadarChart.data.datasets[0].data = state.biometria.juan;
-                myRadarChart.data.datasets[1].data = state.biometria.miciliane;
+                myRadarChart.data.datasets[1].data = state.biometria.mici;
                 myRadarChart.update();
-                document.querySelectorAll('.status-slider').forEach((s, i) => {
-                    s.value = state.biometria[state.currentUser][i];
-                });
+                document.querySelectorAll('.status-slider').forEach((s, i) => s.value = state.biometria[state.currentUser][i]);
             }
         }
 
         document.querySelectorAll('.status-slider').forEach(s => s.oninput = (e) => {
             state.biometria[state.currentUser][e.target.dataset.index] = parseInt(e.target.value);
             updateChart();
+            saveData();
         });
 
-        // Uptime (ORIGINAL)
-        let seconds = 0; 
-        setInterval(() => { 
-            seconds++; 
-            let h = Math.floor(seconds/3600).toString().padStart(2,'0');
-            let m = Math.floor((seconds%3600)/60).toString().padStart(2,'0');
-            let s = (seconds%60).toString().padStart(2,'0');
-            uptimeEl.innerText = `${h}:${m}:${s}`; 
-        }, 1000);
+        // MODAL
+        window.openModal = (i) => {
+            const clause = state.clauses[i] || defaultClauses[i];
+            const hasEdit = state.pendingEdits[i];
+            document.getElementById('modal-title').innerText = clause.title;
+            document.getElementById('modal-body').innerHTML = `<p>${clause.content}</p>`;
+            
+            const actionArea = document.getElementById('modal-action-area');
+            actionArea.innerHTML = '';
 
-        // Deploy (ORIGINAL)
-        btnDeploy.onclick = () => {
-            btnDeploy.disabled = true; 
-            terminal.style.display = 'block';
-            const logs = [
-                "> Inicializando protocolo de auditoria...", 
-                "> Verificando integridade das cláusulas...", 
-                "> Validando assinatura de Miciliane Vaz de Melo...", 
-                "> Opção 1 detectada como 'Mais Viável'...", 
-                "> [SUCCESS] Contrato propagado em todos os nós da rede."
-            ];
-            let i = 0; 
-            const interval = setInterval(() => {
-                if (i < logs.length) { 
-                    const l = document.createElement('div'); 
-                    l.innerText = logs[i++]; 
-                    terminal.appendChild(l); 
-                    terminal.scrollTop = terminal.scrollHeight; 
-                } else { 
-                    clearInterval(interval); 
-                    finalMsg.style.display = 'block'; 
-                    startConfetti(); 
-                }
-            }, 600);
+            if (state.currentUser === 'mici') {
+                actionArea.innerHTML = `
+                    <textarea id="edit-textarea" placeholder="Propor nova versão...">${hasEdit || clause.content}</textarea>
+                    <button class="btn-save" style="width:100%; margin-top:10px;" onclick="proposeEdit(${i})">SALVAR PROPOSTA</button>
+                `;
+            } else if (state.currentUser === 'juan' && hasEdit) {
+                actionArea.innerHTML = `
+                    <div style="background:rgba(255,204,0,0.1); padding:15px; border:1px solid var(--warning-yellow); margin-top:15px;">
+                        <p style="color:var(--warning-yellow); font-size:0.8rem;">PROPOSTA DE MICI:</p>
+                        <p style="font-style:italic; font-size:0.85rem;">"${hasEdit}"</p>
+                        <div style="display:flex; gap:10px; margin-top:10px;">
+                            <button class="btn-save" onclick="approveEdit(${i})">APROVAR</button>
+                            <button class="btn-cancel" onclick="rejectEdit(${i})">REJEITAR</button>
+                        </div>
+                    </div>
+                `;
+            }
+            document.getElementById('modal').classList.add('active');
         };
 
-        // Confete (ORIGINAL)
-        function startConfetti() {
-            const canvas = document.getElementById('confetti'), ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            let particles = []; 
-            for (let i=0; i<100; i++) {
-                particles.push({ 
-                    x: Math.random()*canvas.width, 
-                    y: Math.random()*canvas.height-canvas.height, 
-                    r: Math.random()*4+2, 
-                    d: Math.random()*100, 
-                    color: `hsl(${Math.random()*360}, 100%, 50%)`, 
-                    tilt: Math.random()*10-10 
-                });
-            }
-            function draw() { 
-                ctx.clearRect(0,0,canvas.width,canvas.height); 
-                particles.forEach(p => { 
-                    ctx.beginPath(); ctx.lineWidth=p.r; ctx.strokeStyle=p.color; 
-                    ctx.moveTo(p.x+p.tilt+p.r/2, p.y); 
-                    ctx.lineTo(p.x+p.tilt, p.y+p.tilt+p.r/2); 
-                    ctx.stroke(); 
-                }); 
-                update(); 
-            }
-            function update() { 
-                particles.forEach(p => { 
-                    p.y += Math.cos(p.d)+1+p.r/2; 
-                    p.tilt += Math.sin(p.d)*0.1; 
-                    if (p.y > canvas.height) { p.y = -20; p.x = Math.random()*canvas.width; } 
-                }); 
-                requestAnimationFrame(draw); 
-            }
-            draw();
+        window.closeModal = () => document.getElementById('modal').classList.remove('active');
+
+        window.proposeEdit = (i) => {
+            const val = document.getElementById('edit-textarea').value;
+            if (val.trim()) { state.pendingEdits[i] = val; saveData(); closeModal(); }
+        };
+        window.approveEdit = (i) => {
+            state.clauses[i].content = state.pendingEdits[i];
+            delete state.pendingEdits[i];
+            saveData(); closeModal();
+        };
+        window.rejectEdit = (i) => { delete state.pendingEdits[i]; saveData(); closeModal(); };
+
+        function updateDeployButton() {
+            const checked = Object.values(state.checkboxes).filter(v => v).length;
+            document.getElementById('btn-deploy').disabled = checked < 5;
         }
 
-        window.onload = () => { 
-            initFirebase(); 
-            initRadar(); 
-            updateChart(); 
-        };
+        document.querySelector('.expandable-header').onclick = () => document.getElementById('expandable-controls').classList.toggle('expanded');
+
+        let sec = 0; setInterval(() => { sec++; let h=Math.floor(sec/3600).toString().padStart(2,'0'), m=Math.floor((sec%3600)/60).toString().padStart(2,'0'), s=(sec%60).toString().padStart(2,'0'); document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`; }, 1000);
+
     </script>
 </body>
 </html>
