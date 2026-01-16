@@ -178,6 +178,211 @@
         .btn-cancel { border-color: var(--alert-red); color: var(--alert-red); }
 
         #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2000; }
+
+        /* CHAT FLUTUANTE */
+        .chat-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--neon-blue), var(--matrix-green));
+            border: 2px solid var(--neon-blue);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+
+        .chat-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.8);
+        }
+
+        .chat-button.active {
+            background: linear-gradient(135deg, var(--alert-red), var(--warning-yellow));
+        }
+
+        .chat-container {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 320px;
+            height: 450px;
+            background: var(--card-bg);
+            border: 1px solid var(--neon-blue);
+            border-radius: 8px;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.3);
+            z-index: 999;
+            overflow: hidden;
+        }
+
+        .chat-container.active { display: flex; }
+
+        .chat-header {
+            background: rgba(0, 210, 255, 0.1);
+            border-bottom: 1px solid var(--neon-blue);
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            margin: 0;
+            color: var(--neon-blue);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .chat-close-btn {
+            background: none;
+            border: none;
+            color: var(--matrix-green);
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .online-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--matrix-green);
+            display: inline-block;
+            margin-left: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .offline-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #666;
+            display: inline-block;
+            margin-left: 8px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .presence-list {
+            padding: 10px;
+            border-bottom: 1px solid #30363d;
+            font-size: 0.7rem;
+            max-height: 60px;
+            overflow-y: auto;
+        }
+
+        .presence-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            color: var(--text-gray);
+        }
+
+        .presence-item .online-indicator,
+        .presence-item .offline-indicator {
+            margin-left: 5px;
+            margin-right: 0;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chat-message {
+            display: flex;
+            margin-bottom: 8px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-own {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            background: rgba(0, 210, 255, 0.2);
+            border: 1px solid var(--neon-blue);
+            color: var(--text-white);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message-own .message-bubble {
+            background: rgba(0, 255, 65, 0.2);
+            border-color: var(--matrix-green);
+        }
+
+        .message-time {
+            font-size: 0.6rem;
+            color: var(--text-gray);
+            margin-top: 2px;
+        }
+
+        .chat-input-area {
+            border-top: 1px solid #30363d;
+            padding: 10px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #30363d;
+            color: var(--text-white);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: inherit;
+        }
+
+        .chat-input-area input:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+        }
+
+        .chat-send-btn {
+            background: var(--neon-blue);
+            color: var(--bg-color);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .chat-send-btn:hover {
+            background: var(--matrix-green);
+        }
+
+        .chat-send-btn:active {
+            transform: scale(0.95);
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -185,7 +390,29 @@
 
     <canvas id="confetti"></canvas>
 
-    <!-- TELA DE LOGIN -->
+    <!-- BOTÃO FLUTUANTE DO CHAT -->
+    <div class="chat-button" id="chat-button" title="Abrir Chat">💬</div>
+
+    <!-- CONTAINER DO CHAT -->
+    <div class="chat-container" id="chat-container">
+        <div class="chat-header">
+            <h3>CONVERSA EM TEMPO REAL</h3>
+            <button class="chat-close-btn" onclick="toggleChat()">×</button>
+        </div>
+
+        <div class="presence-list" id="presence-list">
+            <!-- Indicadores de presença serão inseridos aqui -->
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <!-- Mensagens serão inseridas aqui -->
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Digite sua mensagem..." />
+            <button class="chat-send-btn" onclick="sendMessage()">ENVIAR</button>
+        </div>
+    </div>
     <div id="login-screen">
         <h2>TACP ACCESS</h2>
         <div class="input-group">
@@ -274,6 +501,15 @@
         const auth = firebase.auth();
         const db = firebase.database();
 
+        // Verificar se está rodando localmente (file://)
+        const isLocalFile = window.location.protocol === 'file:';
+        if (isLocalFile) {
+            console.warn('[WARNING] Arquivo está sendo aberto como file://. Firebase não funciona localmente. Use um servidor HTTP/HTTPS');
+        }
+
+        // Configurar Auth para modo offline
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(err => console.error('Persistence error:', err));
+
         const defaultClauses = {
             1: { title: "CLÁUSULA 1 – DA DISPONIBILIDADE (DOMINGOS E FERIADOS)", content: "Fica estabelecido que o Contratante continuará exercendo suas funções de quebra-galho oficial, incluindo, mas não se limitando a: Idas emergenciais à farmácia para compra de absorventes e outros itens de primeira necessidade, Suporte 24/7 para emergências domésticas aos domingos, Sem direito a reclamação trabalhista." },
             2: { title: "CLÁUSULA 2 – DA CLÁUSULA ANTI-RESCISÃO", content: "Conforme acordado previamente via WhatsApp, a Contratada optou pela opção Você por completa em vez do jogo de panelas. Fica proibida qualquer tentativa de rescisão de contrato (vulgo se separar). Contrato por tempo indeterminado, Sem multa de saída (porque a saída não é uma opção), Irrevogável e sem direito a rollback." },
@@ -297,22 +533,46 @@
             const pass = document.getElementById('login-password').value;
             const errorEl = document.getElementById('login-error');
             
+            if (!user || !pass) {
+                errorEl.innerText = "Por favor, preencha usuário e senha";
+                errorEl.style.display = 'block';
+                return;
+            }
+            
             // Converte nome simples em email para o Firebase Auth
             const email = `${user}@tacp.com`;
 
             try {
+                // Tentar login primeiro
                 await auth.signInWithEmailAndPassword(email, pass);
+                errorEl.style.display = 'none';
             } catch (e) {
-                try {
-                    await auth.createUserWithEmailAndPassword(email, pass);
-                } catch (err) {
-                    errorEl.innerText = "Erro: " + err.message;
+                // Se falhar, tentar criar novo usuário
+                if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
+                    try {
+                        await auth.createUserWithEmailAndPassword(email, pass);
+                        errorEl.style.display = 'none';
+                    } catch (err) {
+                        errorEl.innerText = "Erro ao criar conta: " + err.message;
+                        errorEl.style.display = 'block';
+                        console.error('[LOGIN ERROR]', err);
+                    }
+                } else {
+                    errorEl.innerText = "Erro de login: " + e.message;
                     errorEl.style.display = 'block';
+                    console.error('[LOGIN ERROR]', e);
                 }
             }
         }
 
-        function handleLogout() { auth.signOut(); window.location.reload(); }
+        function handleLogout() { 
+            auth.signOut().then(() => {
+                window.location.reload();
+            }).catch(err => {
+                console.error('Logout error:', err);
+                window.location.reload();
+            });
+        }
 
         auth.onAuthStateChanged(user => {
             if (user) {
@@ -368,22 +628,33 @@
         window.toggleCheckbox = (i, checked) => { state.checkboxes[i] = checked; saveData(); };
 
         function saveData() {
+            if (isLocalFile) return;
+            
             db.ref('tacp_contract').set({
                 clauses: state.clauses,
                 checkboxes: state.checkboxes,
                 pendingEdits: state.pendingEdits,
                 locations: state.locations,
                 biometria: state.biometria
+            }).catch(err => {
+                console.warn('[SAVE] Erro ao salvar dados:', err.message);
             });
         }
 
         // GPS
         function iniciarRastreamento() {
+            if (isLocalFile) {
+                console.log('[GPS] Desabilitado em modo file://');
+                return;
+            }
+            
             if (navigator.geolocation) {
                 navigator.geolocation.watchPosition(pos => {
                     state.locations[state.currentUser] = { lat: pos.coords.latitude, lon: pos.coords.longitude };
                     saveData();
-                }, null, { enableHighAccuracy: true });
+                }, err => {
+                    console.warn('[GPS] Erro ao obter localização:', err.message);
+                }, { enableHighAccuracy: true });
             }
         }
 
@@ -491,6 +762,147 @@
         document.querySelector('.expandable-header').onclick = () => document.getElementById('expandable-controls').classList.toggle('expanded');
 
         let sec = 0; setInterval(() => { sec++; let h=Math.floor(sec/3600).toString().padStart(2,'0'), m=Math.floor((sec%3600)/60).toString().padStart(2,'0'), s=(sec%60).toString().padStart(2,'0'); document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`; }, 1000);
+
+        // ===== CHAT EM TEMPO REAL =====
+        let presenceTimeout;
+        const users = ['juan', 'mici'];
+
+        function toggleChat() {
+            document.getElementById('chat-container').classList.toggle('active');
+            document.getElementById('chat-button').classList.toggle('active');
+        }
+
+        document.getElementById('chat-button').onclick = toggleChat;
+
+        // Atualizar presença do usuário
+        function updatePresence() {
+            if (!state.currentUser || isLocalFile) return;
+            
+            db.ref(`presence/${state.currentUser}`).set({
+                online: true,
+                lastSeen: new Date().getTime()
+            }).catch(err => {
+                console.warn('[PRESENCE] Erro ao atualizar presença:', err.message);
+            });
+            
+            clearTimeout(presenceTimeout);
+            presenceTimeout = setTimeout(() => {
+                db.ref(`presence/${state.currentUser}`).set({ 
+                    online: false, 
+                    lastSeen: new Date().getTime() 
+                }).catch(err => {
+                    console.warn('[PRESENCE] Erro ao desconectar presença:', err.message);
+                });
+            }, 30000);
+        }
+
+        // Escutar presença de todos os usuários
+        function listenToPresence() {
+            if (isLocalFile) {
+                console.log('[PRESENCE] Desabilitado em modo file://');
+                return;
+            }
+            
+            db.ref('presence').on('value', snapshot => {
+                const presenceList = document.getElementById('presence-list');
+                presenceList.innerHTML = '<strong style="color: var(--text-gray); font-size: 0.65rem;">USUÁRIOS ONLINE</strong>';
+                
+                users.forEach(user => {
+                    const data = snapshot.child(user).val();
+                    const isOnline = data && data.online === true;
+                    const div = document.createElement('div');
+                    div.className = 'presence-item';
+                    div.innerHTML = `
+                        ${user.toUpperCase()}
+                        ${isOnline ? '<span class="online-indicator" title="Online"></span>' : '<span class="offline-indicator" title="Offline"></span>'}
+                    `;
+                    presenceList.appendChild(div);
+                });
+            }, err => {
+                console.warn('[PRESENCE] Erro ao escutar presença:', err.message);
+            });
+        }
+
+        // Enviar mensagem
+        window.sendMessage = function() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message || !state.currentUser) return;
+
+            if (isLocalFile) {
+                console.log('[CHAT] Desabilitado em modo file://');
+                return;
+            }
+
+            const timestamp = new Date().getTime();
+            const msgKey = db.ref('chat').push().key;
+
+            db.ref(`chat/${msgKey}`).set({
+                sender: state.currentUser,
+                message: message,
+                timestamp: timestamp
+            }).catch(err => {
+                console.warn('[CHAT] Erro ao enviar mensagem:', err.message);
+            });
+
+            input.value = '';
+            updatePresence();
+        };
+
+        // Enter para enviar
+        document.getElementById('chat-input').onkeypress = (e) => {
+            if (e.key === 'Enter') sendMessage();
+        };
+
+        // Escutar mensagens
+        function listenToMessages() {
+            if (isLocalFile) {
+                console.log('[CHAT] Desabilitado em modo file://');
+                return;
+            }
+            
+            const messagesDiv = document.getElementById('chat-messages');
+            db.ref('chat').orderByChild('timestamp').limitToLast(50).on('child_added', snapshot => {
+                const data = snapshot.val();
+                const isOwnMessage = data.sender === state.currentUser;
+                const time = new Date(data.timestamp).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+                
+                const div = document.createElement('div');
+                div.className = `chat-message ${isOwnMessage ? 'message-own' : ''}`;
+                div.innerHTML = `
+                    <div>
+                        <div class="message-bubble">${data.message}</div>
+                        <div class="message-time">${isOwnMessage ? 'Você' : data.sender} • ${time}</div>
+                    </div>
+                `;
+                messagesDiv.appendChild(div);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }, err => {
+                console.warn('[CHAT] Erro ao escutar mensagens:', err.message);
+            });
+        }
+
+        // Inicializar chat quando usuário fizer login
+        function initChat() {
+            if (!isLocalFile) {
+                updatePresence();
+                listenToPresence();
+                listenToMessages();
+                
+                // Atualizar presença a cada 10 segundos
+                setInterval(updatePresence, 10000);
+            } else {
+                const presenceList = document.getElementById('presence-list');
+                presenceList.innerHTML = '<p style="color: var(--alert-red); font-size: 0.65rem;">Chat desabilitado em modo local (file://)</p>';
+            }
+        }
+
+        // Hook no auth para iniciar chat
+        const originalInitDashboard = initDashboard;
+        initDashboard = function() {
+            originalInitDashboard();
+            initChat();
+        };
 
     </script>
 </body>
