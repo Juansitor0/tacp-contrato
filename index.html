@@ -212,6 +212,7 @@
         let blinkInterval = null;
         let isFirstLoad = true;
         let avisouProximidade = false;
+        const sessionStartTime = Date.now();
 
         let alertasAtivos = {
             mici: { Fome: false, Saudade: false, Paciência: false, Energia: false },
@@ -222,7 +223,8 @@
             const user = document.getElementById('login-user').value;
             const pass = document.getElementById('login-password').value;
             const email = `${user}@tacp.com`;
-            try { await auth.signInWithEmailAndPassword(email, pass); } 
+            try { await auth.signInWithEmailAndPassword(email, pass); 
+            requestNotifPermission(); }
             catch (e) { try { await auth.createUserWithEmailAndPassword(email, pass); } catch (err) { document.getElementById('login-error').innerText = err.message; document.getElementById('login-error').style.display = 'block'; } }
         }
 
@@ -291,18 +293,15 @@
                         bio.forEach((val, i) => {
                             if (i < 4) {
                                 const label = labels[i];
-                                
-                                // Regra para Fome ou Saudade (Alerta se > 85%)
-                                if ((i === 0 || i === 2) && val > 85) {
+                                if (val > 85) {
                                     nivelCriticoGlobal = true;
+                                    // Só notifica se não for a carga inicial E se ainda não avisou
                                     if (!isFirstLoad && !alertasAtivos.mici[label]) {
-                                        triggerNotification(`⚠️ ${label.toUpperCase()}`, `Nível crítico detectado na Unidade Mici.`);
-                                        alertasAtivos.mici[label] = true; // Trava o alerta para não repetir
+                                        triggerNotification(`⚠️ ${label.toUpperCase()}`, `Nível crítico detectado.`);
+                                        alertasAtivos.mici[label] = true; // Trava o alerta
                                     }
-                                } 
-                                // Reset: Só permite avisar de novo se o valor baixar de 75%
-                                else if (val < 75) {
-                                    alertasAtivos.mici[label] = false;
+                                } else if (val < 75) {
+                                    alertasAtivos.mici[label] = false; // Destrava quando o nível baixar
                                 }
                             }
                         });
@@ -315,7 +314,6 @@
                     // 2. Atualiza a UI (Mantenha o resto)
                     renderClauses(); 
                     updateChart(); 
-                    atualizarDistancia(); 
                     updateDeployButton(); 
                     syncSliders();
                     
@@ -332,8 +330,8 @@
                 container.appendChild(div);
                 container.scrollTop = container.scrollHeight;
                 
-                if (!isFirstLoad && m.user !== state.currentUser) {
-                    triggerNotification(`💬 MENSAGEM DE ${m.user.toUpperCase()}`, m.text);
+                if (m.time > sessionStartTime && m.user !== state.currentUser) {
+                    triggerNotification(`💬 ${m.user.toUpperCase()}`, m.text);
                 }
             });
 
@@ -451,15 +449,7 @@
          };
 
         function iniciarGPS() { if(navigator.geolocation) navigator.geolocation.watchPosition(p => { state.locations[state.currentUser] = {lat: p.coords.latitude, lon: p.coords.longitude}; save(); }, null, {enableHighAccuracy:true}); }
-        function atualizarDistancia() {
-            const l1 = state.locations.juan, l2 = state.locations.mici;
-            if(l1.lat && l2.lat) {
-                const R = 6371; const dLat = (l2.lat-l1.lat)*Math.PI/180; const dLon = (l2.lon-l1.lon)*Math.PI/180;
-                const a = Math.sin(dLat/2)**2 + Math.cos(l1.lat*Math.PI/180)*Math.cos(l2.lat*Math.PI/180)*Math.sin(dLon/2)**2;
-                const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                document.getElementById('distancia-val').innerText = d < 1 ? (d*1000).toFixed(0)+"m" : d.toFixed(2)+"km";
-            }
-        }
+
         
         function atualizarDistancia() {
             const l1 = state.locations.juan, l2 = state.locations.mici;
