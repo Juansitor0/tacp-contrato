@@ -504,6 +504,29 @@
             .then(() => console.log("Motor de segundo plano ativo!"))
             .catch(err => console.log("Erro no Motor:", err));
         }
+        const messaging = firebase.messaging();
+
+        async function registrarFCM() {
+            try {
+                const token = await messaging.getToken({
+                    vapidKey: "BBkKvm1cWf-3jw9govGz9Iud--j8Ct5BGbTCfF3Jtx-YrYjTs-jIAC6LgOgVRKlweLuzI9GvBFFVBVLRp0LItVQ"
+                });
+
+                if (token) {
+                    console.log("🔥 FCM Token:", token);
+                    firebase.database().ref('fcm_tokens/' + state.currentUser).set(token);
+                }
+            } catch (err) {
+                console.error("Erro ao registrar FCM:", err);
+            }
+        }
+
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                registrarFCM();
+            }
+        });
+
         </script>
     </body>
 </html>
