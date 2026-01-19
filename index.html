@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TACP v3.0 | Dashboard de Infraestrutura</title>
+    <title>TACP v3.0 | Notificações Ativas</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
@@ -124,7 +124,7 @@
         </header>
         <div class="user-info-bar">
             <span>SESSÃO: <span id="display-user" style="color: var(--neon-blue); font-weight: bold;">---</span></span>
-            <button onclick="auth.signOut(); window.location.reload();" style="background:none; border:1px solid var(--alert-red); color:var(--alert-red); font-size:0.7rem; cursor:pointer; padding:4px 8px; border-radius:3px;">LOGOUT</button>
+            <button onclick="handleLogout()" style="background:none; border:1px solid var(--alert-red); color:var(--alert-red); font-size:0.7rem; cursor:pointer; padding:4px 8px; border-radius:3px;">LOGOUT</button>
         </div>
         <div class="main-grid">
             <div class="metric-card-graph">
@@ -147,6 +147,7 @@
                         <div style="display:flex; flex-direction:column; gap:12px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span>Vibração</span><input type="checkbox" id="notif-vibrate" checked></div>
                             <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span>Piscar Aba</span><input type="checkbox" id="notif-blink" checked></div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span>Push (Browser)</span><button onclick="requestNotifPermission()" style="font-size:0.6rem; padding:2px 5px;">ATIVAR</button></div>
                         </div>
                     </div>
                 </div>
@@ -209,6 +210,7 @@
         let state = { currentUser: null, clauses: JSON.parse(JSON.stringify(defaultClauses)), pendingEdits: {}, checkboxes: {}, biometria: { juan: [50,50,50,50,100], mici: [50,50,50,50,100] }, locations: { juan: {lat:0, lon:0}, mici: {lat:0, lon:0} } };
         let chart;
         let blinkInterval = null;
+        let isFirstLoad = true;
 
         async function handleLogin() {
             const user = document.getElementById('login-user').value;
@@ -216,6 +218,21 @@
             const email = `${user}@tacp.com`;
             try { await auth.signInWithEmailAndPassword(email, pass); } 
             catch (e) { try { await auth.createUserWithEmailAndPassword(email, pass); } catch (err) { document.getElementById('login-error').innerText = err.message; document.getElementById('login-error').style.display = 'block'; } }
+        }
+
+        async function handleLogout() {
+            if (state.currentUser) {
+                await db.ref(`presence/${state.currentUser}`).set('offline');
+            }
+            auth.signOut().then(() => window.location.reload());
+        }
+
+        function requestNotifPermission() {
+            if ("Notification" in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") alert("Notificações ativadas!");
+                });
+            }
         }
 
         auth.onAuthStateChanged(user => {
@@ -234,7 +251,6 @@
         });
 
         function initSystem() {
-            // 1. HANDSHAKE DE PRESENÇA
             const presenceRef = db.ref(`.info/connected`);
             presenceRef.on('value', snap => {
                 if (snap.val() === true) {
@@ -249,7 +265,6 @@
                 document.getElementById('dot-mici').className = `dot ${p.mici === 'online' ? 'dot-online' : 'dot-offline'}`;
             });
 
-            // 2. SINCRONIZAÇÃO REATIVA TOTAL
             db.ref('tacp_contract').on('value', snap => {
                 if (snap.exists()) {
                     const data = snap.val();
@@ -260,30 +275,24 @@
                     state.locations = data.locations || state.locations;
                     state.biometria = data.biometria || state.biometria;
 
-                    // Notificação de Proposta
-                    if (JSON.stringify(state.pendingEdits) !== oldPending && state.currentUser === 'juan') {
-                        notifyUpdate('PROPOSTA DE CLÁUSULA');
+                    if (!isFirstLoad && JSON.stringify(state.pendingEdits) !== oldPending && state.currentUser === 'juan') {
+                        triggerNotification('⚠️ NOVA PROPOSTA', 'Mici propôs uma alteração no contrato.');
                     }
                     
-                    // Alerta Biometria Mici
                     if (state.currentUser === 'juan') {
                         const miciBio = state.biometria.mici;
-                        if (miciBio[0] > 80 || miciBio[2] > 80) { // Fome ou Saudade
+                        if (miciBio[0] > 80 || miciBio[2] > 80) {
                             document.getElementById('radarChart').style.boxShadow = '0 0 20px var(--alert-red)';
                         } else {
                             document.getElementById('radarChart').style.boxShadow = 'none';
                         }
                     }
 
-                    renderClauses(); 
-                    updateChart(); 
-                    atualizarDistancia(); 
-                    updateDeployButton();
-                    syncSliders();
+                    renderClauses(); updateChart(); atualizarDistancia(); updateDeployButton(); syncSliders();
+                    isFirstLoad = false;
                 } else { save(); }
             });
 
-            // 3. ENGINE DE MENSAGENS (child_added)
             db.ref('chat').on('child_added', snap => {
                 const m = snap.val();
                 const container = document.getElementById('chat-messages');
@@ -292,25 +301,31 @@
                 div.innerHTML = `<span style="font-size:0.6rem; font-weight:bold; display:block; color:var(--neon-blue);">${m.user.toUpperCase()}</span>${m.text}`;
                 container.appendChild(div);
                 container.scrollTop = container.scrollHeight;
-                if (m.user !== state.currentUser) notifyUpdate('NOVA MENSAGEM');
+                
+                if (!isFirstLoad && m.user !== state.currentUser) {
+                    triggerNotification(`💬 MENSAGEM DE ${m.user.toUpperCase()}`, m.text);
+                }
             });
 
             initRadar(); iniciarGPS();
         }
 
-        function notifyUpdate(type) {
+        function triggerNotification(title, body) {
             if (document.getElementById('notif-blink').checked) {
                 if (blinkInterval) clearInterval(blinkInterval);
                 let originalTitle = document.title;
                 let isAlert = false;
                 blinkInterval = setInterval(() => {
-                    document.title = isAlert ? `⚠️ ${type}` : originalTitle;
+                    document.title = isAlert ? `⚠️ ${title}` : originalTitle;
                     isAlert = !isAlert;
                 }, 1000);
                 setTimeout(() => { clearInterval(blinkInterval); document.title = originalTitle; }, 10000);
             }
             if (document.getElementById('notif-vibrate').checked && navigator.vibrate) {
                 navigator.vibrate([200, 100, 200]);
+            }
+            if (Notification.permission === "granted") {
+                new Notification(title, { body: body });
             }
         }
 
@@ -351,7 +366,7 @@
                 div.innerHTML = `
                     <input type="checkbox" class="clause-checkbox" ${state.checkboxes[i] ? 'checked' : ''} onclick="event.stopPropagation(); toggleCheck(${i}, this.checked)">
                     <div class="clause-content" onclick="openModal(${i})">
-                        <h3>${c.title} ${hasEdit ? '<span class="edit-badge">PENDENTE</span>' : ''}</h3>
+                        <h3>${c.title} ${hasEdit ? '<span style="background:var(--warning-yellow); color:#000; font-size:0.6rem; padding:2px 5px; border-radius:3px; margin-left:5px; font-weight:bold;">PENDENTE</span>' : ''}</h3>
                         <p>${c.content.substring(0, 80)}...</p>
                     </div>
                 `;
