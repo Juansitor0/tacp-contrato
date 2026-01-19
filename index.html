@@ -142,6 +142,63 @@
         textarea { width: 100%; height: 120px; background: #000; color: white; border: 1px solid var(--neon-blue); padding: 10px; margin-top: 10px; font-family: inherit; font-size: 1rem; }
 
         #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4000; }
+        
+
+                /* ===== STATUS ONLINE / OFFLINE (WHATSAPP STYLE) ===== */
+        .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            display: inline-block;
+            background: #555;
+        }
+
+        .dot-online {
+            background: var(--matrix-green);
+            box-shadow: 0 0 6px var(--matrix-green);
+        }
+
+        .dot-offline {
+            background: #666;
+            opacity: 0.6;
+        }
+
+        /* ===== CHAT INPUT ===== */
+        .chat-input-area {
+            display: flex;
+            gap: 6px;
+            padding: 8px;
+            border-top: 1px solid #30363d;
+            background: rgba(0,0,0,0.5);
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            background: #000;
+            border: 1px solid #30363d;
+            color: white;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .chat-input-area input:focus {
+            border-color: var(--neon-blue);
+        }
+
+        .btn-send {
+            width: 36px;
+            background: var(--neon-blue);
+            border: none;
+            color: #000;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -310,11 +367,18 @@
                 document.getElementById('chat-widget').style.display = 'flex';
                 // Renderiza imediatamente com fallback antes do Firebase responder
                 renderClauses();
-                initSystem();
+
+                if(!systemInitialized) {
+                    initSystem();
+                    systemInitialized = true;
+                }
+                
             } else {
                 document.getElementById('login-screen').style.display = 'block';
                 document.getElementById('dashboard').style.display = 'none';
                 document.getElementById('chat-widget').style.display = 'none';
+
+            systemInitialized = false;
             }
         });
 
@@ -339,17 +403,39 @@
             });
 
             db.ref('presence').on('value', snap => {
-                const p = snap.val() || {};
-                document.getElementById('dot-juan').className = `dot ${p.juan === 'online' ? 'dot-online' : 'dot-offline'}`;
-                document.getElementById('dot-mici').className = `dot ${p.mici === 'online' ? 'dot-online' : 'dot-offline'}`;
+                const data = snap.val() || {};
+
+                updatePresenceUI('juan', data);
+                updatePresenceUI('mici', data);
             });
+
+        }
+
+        function updatePresenceUI(name, data) {
+            let online = false;
+
+            Object.values(data).forEach(u => {
+                if (u.user === name && u.online === true) {
+                    online = true;
+                }
+            });
+
+            const dot = document.getElementById(`dot-${name}`);
+            if (!dot) return;
+
+            dot.className = `dot ${online ? 'dot-online' : 'dot-offline'}`;
+        }
+
+        
+
+        
 
             db.ref('chat').limitToLast(30).on('value', snap => {
                 const msgs = snap.val() || {};
                 const container = document.getElementById('chat-messages');
                 container.innerHTML = '';
                 Object.values(msgs).forEach(m => {
-                    const div = document.createElement('div');
+                    const div = document.createElement('div')
                     div.className = `msg ${m.user === state.currentUser ? 'msg-me' : 'msg-them'}`;
                     div.innerHTML = `<span class="msg-user">${m.user.toUpperCase()}</span>${m.text}`;
                     container.appendChild(div);
@@ -382,7 +468,7 @@
             });
 
             initRadar(); iniciarGPS();
-        }
+
 
         function sendMessage() {
             const input = document.getElementById('chat-input');
