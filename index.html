@@ -211,6 +211,7 @@
         let chart;
         let blinkInterval = null;
         let isFirstLoad = true;
+        let avisouProximidade = false;
 
         async function handleLogin() {
             const user = document.getElementById('login-user').value;
@@ -269,26 +270,41 @@
                 if (snap.exists()) {
                     const data = snap.val();
                     const oldPending = JSON.stringify(state.pendingEdits);
+                    
                     state.clauses = data.clauses || state.clauses;
                     state.pendingEdits = data.pendingEdits || {};
                     state.checkboxes = data.checkboxes || {};
                     state.locations = data.locations || state.locations;
                     state.biometria = data.biometria || state.biometria;
 
-                    if (!isFirstLoad && JSON.stringify(state.pendingEdits) !== oldPending && state.currentUser === 'juan') {
-                        triggerNotification('⚠️ NOVA PROPOSTA', 'Mici propôs uma alteração no contrato.');
-                    }
-                    
-                    if (state.currentUser === 'juan') {
-                        const miciBio = state.biometria.mici;
-                        if (miciBio[0] > 80 || miciBio[2] > 80) {
-                            document.getElementById('radarChart').style.boxShadow = '0 0 20px var(--alert-red)';
-                        } else {
-                            document.getElementById('radarChart').style.boxShadow = 'none';
+                    // Notificações para o Juan
+                    if (!isFirstLoad && state.currentUser === 'juan') {
+                        if (JSON.stringify(state.pendingEdits) !== oldPending) {
+                            triggerNotification('⚠️ NOVA PROPOSTA', 'Mici propôs uma alteração no contrato.');
                         }
+
+                        const bio = state.biometria.mici;
+                        const labels = ['Fome', 'Paciência', 'Saudade', 'Energia'];
+                        let nivelCritico = false;
+
+                        bio.forEach((val, i) => {
+                            if (i < 4) {
+                                if ((i === 0 || i === 2) && val > 85) { nivelCritico = true; triggerNotification(`⚠️ ALERTA: ${labels[i].toUpperCase()}`, `Nível crítico: ${val}%`); }
+                                if ((i === 1 || i === 3) && val < 15) { nivelCritico = true; triggerNotification(`🚨 CRÍTICO: ${labels[i].toUpperCase()}`, `Nível baixo: ${val}%`); }
+                            }
+                        });
+
+                        const chartEl = document.getElementById('radarChart');
+                        chartEl.style.boxShadow = nivelCritico ? '0 0 25px var(--alert-red)' : 'none';
+                        if(nivelCritico) chartEl.style.border = '1px solid var(--alert-red)';
                     }
 
-                    renderClauses(); updateChart(); atualizarDistancia(); updateDeployButton(); syncSliders();
+                    renderClauses(); 
+                    updateChart(); 
+                    atualizarDistancia(); 
+                    updateDeployButton(); 
+                    syncSliders();
+                    
                     isFirstLoad = false;
                 } else { save(); }
             });
@@ -394,8 +410,31 @@
 
         window.closeModal = () => document.getElementById('modal').classList.remove('active');
         window.propose = (i) => { const val = document.getElementById('edit-tx').value; if(val.trim()){ state.pendingEdits[i] = val; save(); closeModal(); } };
-        window.approve = (i) => { state.clauses[i].content = state.pendingEdits[i]; delete state.pendingEdits[i]; save(); closeModal(); };
-        window.reject = (i) => { delete state.pendingEdits[i]; save(); closeModal(); };
+        window.approve = (i) => {
+                        state.clauses[i].content = state.pendingEdits[i]; 
+                delete state.pendingEdits[i]; 
+                save(); 
+                // Notifica a Mici que o Juan aprovou
+                db.ref('chat').push({ 
+                    user: 'system', 
+                    text: `✅ CLÁUSULA ${i} APROVADA PELO CONTRATANTE.`, 
+                    time: Date.now()
+                });
+                closeModal();
+        };
+
+        window.reject = (i) => { 
+            delete state.pendingEdits[i]; 
+             save(); 
+            // Notifica a Mici que o Juan recusou
+            db.ref('chat').push({ 
+                user: 'system', 
+                text: `❌ PROPOSTA DE EDIÇÃO DA CLÁUSULA ${i} FOI REJEITADA.`, 
+                time: Date.now() 
+            });
+            closeModal();
+                    
+         };
 
         function iniciarGPS() { if(navigator.geolocation) navigator.geolocation.watchPosition(p => { state.locations[state.currentUser] = {lat: p.coords.latitude, lon: p.coords.longitude}; save(); }, null, {enableHighAccuracy:true}); }
         function atualizarDistancia() {
@@ -405,6 +444,27 @@
                 const a = Math.sin(dLat/2)**2 + Math.cos(l1.lat*Math.PI/180)*Math.cos(l2.lat*Math.PI/180)*Math.sin(dLon/2)**2;
                 const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
                 document.getElementById('distancia-val').innerText = d < 1 ? (d*1000).toFixed(0)+"m" : d.toFixed(2)+"km";
+            }
+        }
+        
+        function atualizarDistancia() {
+            const l1 = state.locations.juan, l2 = state.locations.mici;
+            if(l1.lat && l2.lat) {
+                const R = 6371; 
+                const dLat = (l2.lat-l1.lat)*Math.PI/180;
+                const dLon = (l2.lon-l1.lon)*Math.PI/180;
+                const a = Math.sin(dLat/2)**2 + Math.cos(l1.lat*Math.PI/180)*Math.cos(l2.lat*Math.PI/180)*Math.sin(dLon/2)**2;
+                const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+                const disText = d < 1 ? (d*1000).toFixed(0) + ' m' : d.toFixed(2) + ' km';
+                document.getElementById('distancia-val').innerText = disText;
+
+                if(d < 0.2 && !avisouProximidade){
+                    triggerNotification('📍 PROXIMIDADE', 'Unidade detectada a menos de 200m!');
+                    avisouProximidade = true;
+                } else if(d > 0.5){
+                    avisouProximidade = false; 
+                }
             }
         }
 
@@ -433,6 +493,8 @@
 
         document.querySelectorAll('.expandable-header').forEach(h => h.onclick = () => h.parentElement.classList.toggle('expanded'));
         let sec = 0; setInterval(() => { sec++; let h=Math.floor(sec/3600).toString().padStart(2,'0'), m=Math.floor((sec%3600)/60).toString().padStart(2,'0'), s=(sec%60).toString().padStart(2,'0'); document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`; }, 1000);
-    </script>
-</body>
+    
+    
+        </script>
+    </body>
 </html>
