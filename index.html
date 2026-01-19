@@ -319,12 +319,22 @@
         });
 
         function initSystem() {
-            const presenceRef = db.ref(`.info/connected`);
+            const presenceRef = db.ref('.info/connected');
             presenceRef.on('value', snap => {
                 if (snap.val() === true) {
-                    const con = db.ref(`presence/${state.currentUser}`);
-                    con.onDisconnect().set('offline');
-                    con.set('online');
+                    const con = db.ref(`presence/${auth.currentUser.uid}`);
+
+                    con.onDisconnect().set({
+                        online: false,
+                        lastSeen: firebase.database.ServerValue.TIMESTAMP,
+                        user: state.currentUser
+                    });
+
+                    con.set({
+                        online: true,
+                        lastSeen: firebase.database.ServerValue.TIMESTAMP,
+                        user: state.currentUser
+                    });
                 }
             });
 
