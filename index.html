@@ -213,6 +213,11 @@
         let isFirstLoad = true;
         let avisouProximidade = false;
 
+        let alertasAtivos = {
+            mici: { Fome: false, Saudade: false, Paciência: false, Energia: false },
+            juan: { Fome: false, Saudade: false, Paciência: false, Energia: false }
+        };
+
         async function handleLogin() {
             const user = document.getElementById('login-user').value;
             const pass = document.getElementById('login-password').value;
@@ -278,27 +283,36 @@
                     state.biometria = data.biometria || state.biometria;
 
                     // Notificações para o Juan
-                    if (!isFirstLoad && state.currentUser === 'juan') {
-                        if (JSON.stringify(state.pendingEdits) !== oldPending) {
-                            triggerNotification('⚠️ NOVA PROPOSTA', 'Mici propôs uma alteração no contrato.');
-                        }
-
+                    if (state.currentUser === 'juan') {
                         const bio = state.biometria.mici;
                         const labels = ['Fome', 'Paciência', 'Saudade', 'Energia'];
-                        let nivelCritico = false;
+                        let nivelCriticoGlobal = false;
 
                         bio.forEach((val, i) => {
                             if (i < 4) {
-                                if ((i === 0 || i === 2) && val > 85) { nivelCritico = true; triggerNotification(`⚠️ ALERTA: ${labels[i].toUpperCase()}`, `Nível crítico: ${val}%`); }
-                                if ((i === 1 || i === 3) && val < 15) { nivelCritico = true; triggerNotification(`🚨 CRÍTICO: ${labels[i].toUpperCase()}`, `Nível baixo: ${val}%`); }
+                                const label = labels[i];
+                                
+                                // Regra para Fome ou Saudade (Alerta se > 85%)
+                                if ((i === 0 || i === 2) && val > 85) {
+                                    nivelCriticoGlobal = true;
+                                    if (!isFirstLoad && !alertasAtivos.mici[label]) {
+                                        triggerNotification(`⚠️ ${label.toUpperCase()}`, `Nível crítico detectado na Unidade Mici.`);
+                                        alertasAtivos.mici[label] = true; // Trava o alerta para não repetir
+                                    }
+                                } 
+                                // Reset: Só permite avisar de novo se o valor baixar de 75%
+                                else if (val < 75) {
+                                    alertasAtivos.mici[label] = false;
+                                }
                             }
                         });
 
                         const chartEl = document.getElementById('radarChart');
-                        chartEl.style.boxShadow = nivelCritico ? '0 0 25px var(--alert-red)' : 'none';
-                        if(nivelCritico) chartEl.style.border = '1px solid var(--alert-red)';
+                        chartEl.style.boxShadow = nivelCriticoGlobal ? '0 0 25px var(--alert-red)' : 'none';
                     }
+                    // --- FIM DO BLOCO DE BIOMETRIA ---
 
+                    // 2. Atualiza a UI (Mantenha o resto)
                     renderClauses(); 
                     updateChart(); 
                     atualizarDistancia(); 
@@ -306,7 +320,7 @@
                     syncSliders();
                     
                     isFirstLoad = false;
-                } else { save(); }
+                }
             });
 
             db.ref('chat').on('child_added', snap => {
