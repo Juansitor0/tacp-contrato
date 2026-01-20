@@ -160,10 +160,11 @@
                 <div class="expandable-section expanded" id="expandable-controls">
                     <div class="expandable-header"><span>MEUS STATUS</span><span>▼</span></div>
                     <div class="expandable-content">
+                        <div class="status-control"><div class="status-label-row"><span>FOME 🍕</span><span id="val-0">50%</span></div><input type="range" class="status-slider" data-index="0" min="0" max="100"></div>
+                        <div class="status-control"><div class="status-label-row"><span>PACIÊNCIA 🧘</span><span id="val-1">50%</span></div><input type="range" class="status-slider" data-index="1" min="0" max="100"></div>
+                        <div class="status-control"><div class="status-label-row"><span>TRISTEZA ☁️</span><span id="val-2">50%</span></div><input type="range" class="status-slider" data-index="2" min="0" max="100"></div>
+                        <div class="status-control"><div class="status-label-row"><span>FELICIDADE ✨</span><span id="val-3">50%</span></div><input type="range" class="status-slider" data-index="3" min="0" max="100"></div>
                         <div class="status-control"><div class="status-label-row"><span>AMOR ❤️</span><span id="val-4">50%</span></div><input type="range" class="status-slider" data-index="4" min="0" max="100"></div>
-                        <div class="status-control"><div class="status-label-row"><span>PACIÊNCIA</span><span id="val-1">50%</span></div><input type="range" class="status-slider" data-index="1" min="0" max="100"></div>
-                        <div class="status-control"><div class="status-label-row"><span>SAUDADE</span><span id="val-2">50%</span></div><input type="range" class="status-slider" data-index="2" min="0" max="100"></div>
-                        <div class="status-control"><div class="status-label-row"><span>ENERGIA ⚡</span><span id="val-3">50%</span></div><input type="range" class="status-slider" data-index="3" min="0" max="100"></div>
                     </div>
                 </div>
                 <div class="expandable-section" id="expandable-notif" style="margin-top:10px;">
@@ -240,8 +241,8 @@
         const sessionStartTime = Date.now();
 
         let alertasAtivos = {
-            mici: { Fome: false, Saudade: false, Paciência: false, Energia: false },
-            juan: { Fome: false, Saudade: false, Paciência: false, Energia: false }
+            mici: { Fome: false, Paciência: false, Tristeza: false, Felicidade: false },
+            juan: { Fome: false, Paciência: false, Tristeza: false, Felicidade: false }
         };
 
         async function handleLogin() {
@@ -309,24 +310,39 @@
                     state.locations = data.locations || state.locations;
                     state.biometria = data.biometria || state.biometria;
 
-                    // Notificações para o Juan
+                    // Notificações para o Juan (Monitorando a Mici)
                     if (state.currentUser === 'juan') {
                         const bio = state.biometria.mici;
-                        const labels = ['Fome', 'Paciência', 'Saudade', 'Energia'];
+                        const labels = ['Fome', 'Paciência', 'Tristeza', 'Felicidade'];
                         let nivelCriticoGlobal = false;
 
                         bio.forEach((val, i) => {
                             if (i < 4) {
                                 const label = labels[i];
-                                if (val > 85) {
+                                let isCritical = false;
+                                
+                                // Lógica de Alerta: Paciência e Felicidade alertam quando BAIXAS
+                                // Fome e Tristeza alertam quando ALTAS
+                                if (label === 'Paciência' || label === 'Felicidade') {
+                                    isCritical = val < 20;
+                                } else {
+                                    isCritical = val > 80;
+                                }
+
+                                if (isCritical) {
                                     nivelCriticoGlobal = true;
-                                    // Só notifica se não for a carga inicial E se ainda não avisou
                                     if (!isFirstLoad && !alertasAtivos.mici[label]) {
-                                        triggerNotification(`⚠️ ${label.toUpperCase()}`, `Nível crítico detectado.`);
-                                        alertasAtivos.mici[label] = true; // Trava o alerta
+                                        const msg = (label === 'Paciência' || label === 'Felicidade') ? `Nível muito baixo!` : `Nível crítico detectado!`;
+                                        triggerNotification(`⚠️ ${label.toUpperCase()}`, msg);
+                                        alertasAtivos.mici[label] = true;
                                     }
-                                } else if (val < 75) {
-                                    alertasAtivos.mici[label] = false; // Destrava quando o nível baixar
+                                } else {
+                                    // Reset do alerta com margem de segurança
+                                    if (label === 'Paciência' || label === 'Felicidade') {
+                                        if (val > 30) alertasAtivos.mici[label] = false;
+                                    } else {
+                                        if (val < 70) alertasAtivos.mici[label] = false;
+                                    }
                                 }
                             }
                         });
@@ -445,25 +461,37 @@
         }
 
         function shareMusic() {
-            const link = document.getElementById('spotify-link').value;
+            const linkInput = document.getElementById('spotify-link');
+            let link = linkInput.value.trim();
             if (link.includes('spotify.com')) {
-                let embedUrl = link;
-                if (link.includes('open.spotify.com')) {
-                    const parts = link.split('/');
-                    const type = parts[3];
-                    const id = parts[4].split('?')[0];
-                    embedUrl = `https://open.spotify.com/embed/${type}/${id}`;
+                let embedUrl = "";
+                try {
+                    // Remove parâmetros de busca para limpar o link
+                    const cleanLink = link.split('?')[0];
+                    const parts = cleanLink.split('/');
+                    
+                    // O link do Spotify costuma ser: https://open.spotify.com/track/ID ou https://open.spotify.com/playlist/ID
+                    // parts[0]=https:, parts[1]="", parts[2]=open.spotify.com, parts[3]=type, parts[4]=id
+                    if (parts.length >= 5) {
+                        const type = parts[3];
+                        const id = parts[4];
+                        embedUrl = `https://open.spotify.com/embed/${type}/${id}`;
+                    } else {
+                        throw new Error("Link inválido");
+                    }
+
+                    state.currentMusic = embedUrl;
+                    save();
+                    linkInput.value = '';
+                    
+                    db.ref('chat').push({ 
+                        user: 'system', 
+                        text: `🎵 ${state.currentUser.toUpperCase()} compartilhou uma nova música!`, 
+                        time: Date.now() 
+                    });
+                } catch (e) {
+                    alert('Erro ao processar o link. Certifique-se de que é um link de música ou playlist válido.');
                 }
-                state.currentMusic = embedUrl;
-                save();
-                document.getElementById('spotify-link').value = '';
-                
-                // Notifica o outro usuário
-                db.ref('chat').push({ 
-                    user: 'system', 
-                    text: `🎵 ${state.currentUser.toUpperCase()} compartilhou uma nova música!`, 
-                    time: Date.now() 
-                });
             } else {
                 alert('Por favor, insira um link válido do Spotify.');
             }
@@ -547,7 +575,7 @@
             const ctx = document.getElementById('radarChart').getContext('2d');
             chart = new Chart(ctx, {
                 type: 'radar',
-                data: { labels: ['Fome', 'Paciência', 'Saudade', 'Energia', 'Amor'], datasets: [{label:'Juan', data:state.biometria.juan, borderColor:'#00ff41', backgroundColor:'rgba(0,255,65,0.1)'}, {label:'Mici', data:state.biometria.mici, borderColor:'#00d2ff', backgroundColor:'rgba(0,210,255,0.1)'}] },
+                data: { labels: ['Fome', 'Paciência', 'Tristeza', 'Felicidade', 'Amor'], datasets: [{label:'Juan', data:state.biometria.juan, borderColor:'#00ff41', backgroundColor:'rgba(0,255,65,0.1)'}, {label:'Mici', data:state.biometria.mici, borderColor:'#00d2ff', backgroundColor:'rgba(0,210,255,0.1)'}] },
                 options: { responsive:true, maintainAspectRatio:false, scales:{r:{grid:{color:'#333'}, ticks:{display:false}, pointLabels:{color:'#8b949e', font:{size:11}}}}, plugins:{legend:{labels:{color:'#fff', font:{size:11}}}} }
             });
         }

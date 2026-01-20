@@ -13,6 +13,33 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Listener para mensagens push do FCM
+self.addEventListener('push', function(event) {
+  console.log('[sw.js] Push recebido:', event);
+  let data = {};
+  if (event.data) {
+    data = event.data.json();
+  }
+
+  const notificationTitle = data.notification?.title || "TACP Notificação";
+  const notificationOptions = {
+    body: data.notification?.body || "Você tem uma nova atualização.",
+    icon: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
+    badge: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
+    vibrate: [200, 100, 200],
+    tag: 'tacp-notification', // Evita múltiplas notificações iguais
+    renotify: true,
+    data: {
+      url: self.location.origin
+    }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(notificationTitle, notificationOptions)
+  );
+});
+
+// Fallback para o método compat do Firebase
 messaging.onBackgroundMessage(function(payload) {
   console.log('[sw.js] Mensagem em segundo plano recebida:', payload);
   const notificationTitle = payload.notification.title || "TACP Notificação";
@@ -21,6 +48,8 @@ messaging.onBackgroundMessage(function(payload) {
     icon: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
     badge: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
     vibrate: [200, 100, 200],
+    tag: 'tacp-notification',
+    renotify: true,
     data: {
       url: self.location.origin
     }
