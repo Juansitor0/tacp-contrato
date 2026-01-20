@@ -154,8 +154,12 @@
                         <span style="margin-left: auto; font-size: 0.8rem; opacity: 0.5;">⛏️</span>
                     </div>
                     <div class="music-input-group">
-                        <input type="text" id="spotify-link" class="music-input" placeholder="Cole o link do Spotify aqui...">
+                        <input type="text" id="spotify-link" class="music-input" placeholder="Cole o link do Spotify aqui..." onkeypress="if(event.key==='Enter') shareMusic()">
                         <button class="btn-music" onclick="shareMusic()">ENVIAR</button>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                        <button class="btn-music" onclick="openSpotify()" style="flex: 1; font-size: 0.7rem; padding: 6px;">🎶 ABRIR SPOTIFY</button>
+                        <button class="btn-music" onclick="clearMusic()" style="flex: 1; font-size: 0.7rem; padding: 6px; border-color: var(--alert-red); color: var(--alert-red);">❌ LIMPAR</button>
                     </div>
                     <div id="spotify-player-container">
                         <p style="font-size: 0.7rem; color: var(--text-gray); text-align: center;">Nenhuma música compartilhada ainda.</p>
@@ -268,9 +272,23 @@
 
         function requestNotifPermission() {
             if ("Notification" in window) {
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") alert("Notificações ativadas!");
-                });
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === "granted") {
+                            alert("✅ Notificações ativadas com sucesso!");
+                            // Testar notificação
+                            triggerNotification('🔔 TACP Ativo', 'Você receberá notificações de atualizações importantes.');
+                        } else if (permission === "denied") {
+                            alert("⚠️ Notificações bloqueadas. Para ativar, acesse as configurações do navegador.");
+                        }
+                    });
+                } else if (Notification.permission === 'granted') {
+                    alert("✅ Notificações já estão ativas!");
+                } else {
+                    alert("⚠️ Notificações bloqueadas. Acesse as configurações do navegador para permitir.");
+                }
+            } else {
+                alert("❌ Seu navegador não suporta notificações.");
             }
         }
 
@@ -431,8 +449,30 @@
                 navigator.vibrate([200, 100, 200]);
             }
 
-            // ⚠️ NÃO criar Notification aqui
-            // Push real vem do FCM
+            // ✅ CORREÇÃO: Criar notificação nativa do sistema
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try {
+                    const notification = new Notification(title, {
+                        body: body,
+                        icon: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
+                        badge: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
+                        tag: 'tacp-local-notification',
+                        requireInteraction: false,
+                        vibrate: [200, 100, 200]
+                    });
+                    
+                    // Focar na janela quando clicar na notificação
+                    notification.onclick = function() {
+                        window.focus();
+                        notification.close();
+                    };
+                    
+                    // Fechar automaticamente após 10 segundos
+                    setTimeout(() => notification.close(), 10000);
+                } catch (err) {
+                    console.error('Erro ao criar notificação:', err);
+                }
+            }
         }
         function syncSliders() {
             state.biometria[state.currentUser].forEach((val, i) => {
@@ -502,17 +542,25 @@
         function shareMusic() {
             const linkInput = document.getElementById('spotify-link');
             let link = linkInput.value.trim();
+            
+            if (!link) {
+                alert('⚠️ Por favor, cole um link do Spotify primeiro.');
+                return;
+            }
+            
             if (link.includes('spotify.com')) {
                 let embedUrl = "";
+                let contentType = "conteúdo";
+                
                 try {
                     // Remove parâmetros de busca para limpar o link
                     const cleanLink = link.split('?')[0];
-                    const parts = cleanLink.split('/');
                     
                     // Suporta links como:
                     // https://open.spotify.com/track/ID
                     // https://open.spotify.com/intl-pt/track/ID
                     // https://open.spotify.com/playlist/ID
+                    // https://open.spotify.com/album/ID
                     
                     const trackMatch = link.match(/track\/([a-zA-Z0-9]+)/);
                     const playlistMatch = link.match(/playlist\/([a-zA-Z0-9]+)/);
@@ -520,10 +568,13 @@
 
                     if (trackMatch) {
                         embedUrl = `https://open.spotify.com/embed/track/${trackMatch[1]}`;
+                        contentType = "música";
                     } else if (playlistMatch) {
                         embedUrl = `https://open.spotify.com/embed/playlist/${playlistMatch[1]}`;
+                        contentType = "playlist";
                     } else if (albumMatch) {
                         embedUrl = `https://open.spotify.com/embed/album/${albumMatch[1]}`;
+                        contentType = "álbum";
                     } else {
                         throw new Error("Tipo de link não suportado ou inválido");
                     }
@@ -532,16 +583,28 @@
                     save();
                     linkInput.value = '';
                     
+                    // Feedback visual
+                    linkInput.style.borderColor = 'var(--matrix-green)';
+                    setTimeout(() => { linkInput.style.borderColor = '#30363d'; }, 1000);
+                    
                     db.ref('chat').push({ 
                         user: 'system', 
-                        text: `🎵 ${state.currentUser.toUpperCase()} compartilhou uma nova música!`, 
+                        text: `🎵 ${state.currentUser.toUpperCase()} compartilhou uma nova ${contentType}!`, 
                         time: Date.now() 
                     });
+                    
+                    // Notificação de sucesso
+                    triggerNotification('🎶 Música Compartilhada', `Você compartilhou uma ${contentType} do Spotify!`);
+                    
                 } catch (e) {
-                    alert('Erro ao processar o link. Certifique-se de que é um link de música ou playlist válido.');
+                    linkInput.style.borderColor = 'var(--alert-red)';
+                    setTimeout(() => { linkInput.style.borderColor = '#30363d'; }, 2000);
+                    alert('❌ Erro ao processar o link. Certifique-se de que é um link válido do Spotify (música, playlist ou álbum).');
                 }
             } else {
-                alert('Por favor, insira um link válido do Spotify.');
+                linkInput.style.borderColor = 'var(--alert-red)';
+                setTimeout(() => { linkInput.style.borderColor = '#30363d'; }, 2000);
+                alert('❌ Por favor, insira um link válido do Spotify (deve conter "spotify.com").');
             }
         }
 
@@ -549,6 +612,25 @@
             const container = document.getElementById('spotify-player-container');
             if (url && container) {
                 container.innerHTML = `<iframe class="spotify-embed" src="${url}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+            } else if (container) {
+                container.innerHTML = '<p style="font-size: 0.7rem; color: var(--text-gray); text-align: center;">Nenhuma música compartilhada ainda.</p>';
+            }
+        }
+
+        function openSpotify() {
+            window.open('https://open.spotify.com/', '_blank');
+        }
+
+        function clearMusic() {
+            if (confirm('❌ Tem certeza que deseja remover a música atual?')) {
+                state.currentMusic = '';
+                save();
+                updateMusicPlayer('');
+                db.ref('chat').push({ 
+                    user: 'system', 
+                    text: `🔇 ${state.currentUser.toUpperCase()} removeu a música.`, 
+                    time: Date.now() 
+                });
             }
         }
 
@@ -595,7 +677,25 @@
                     
          };
 
-        function iniciarGPS() { if(navigator.geolocation) navigator.geolocation.watchPosition(p => { state.locations[state.currentUser] = {lat: p.coords.latitude, lon: p.coords.longitude}; save(); }, null, {enableHighAccuracy:true}); }
+        function iniciarGPS() { 
+            if(navigator.geolocation) {
+                navigator.geolocation.watchPosition(
+                    p => { 
+                        state.locations[state.currentUser] = {lat: p.coords.latitude, lon: p.coords.longitude}; 
+                        save(); 
+                    }, 
+                    error => {
+                        console.error('❌ Erro ao obter localização:', error);
+                        if (error.code === error.PERMISSION_DENIED) {
+                            console.warn('⚠️ Permissão de localização negada pelo usuário.');
+                        }
+                    }, 
+                    {enableHighAccuracy:true, timeout: 10000, maximumAge: 0}
+                );
+            } else {
+                console.error('❌ Geolocalizacão não suportada neste navegador.');
+            }
+        }
 
         
         function atualizarDistancia() {
@@ -678,7 +778,12 @@
                 const val = parseInt(e.target.value);
                 state.biometria[state.currentUser][idx] = val; 
                 document.getElementById(`val-${idx}`).innerText = val + "%";
-                save(); // ✅ apenas salva
+                
+                // ✅ CORREÇÃO: Atualiza o gráfico imediatamente (feedback local)
+                updateChart(false);
+                
+                // Salva no Firebase com debounce
+                save();
             });
         });
 
@@ -694,10 +799,22 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
             .then(reg => {
-                console.log("Motor de segundo plano ativo!");
+                console.log("✅ Service Worker registrado com sucesso!");
                 swRegistration = reg;
+                
+                // Verifica se está ativo
+                if (reg.active) {
+                    console.log("✅ Service Worker está ativo.");
+                } else {
+                    console.log("⏳ Service Worker está instalando...");
+                }
             })
-            .catch(err => console.log("Erro no Motor:", err));
+            .catch(err => {
+                console.error("❌ Erro ao registrar Service Worker:", err);
+                console.warn("⚠️ Notificações push podem não funcionar corretamente.");
+            });
+        } else {
+            console.error("❌ Service Workers não são suportados neste navegador.");
         }
         const messaging = firebase.messaging();
 
@@ -712,9 +829,16 @@
 
         async function registrarFCM() {
             try {
+                // Verifica se as notificações estão permitidas
+                if (Notification.permission !== 'granted') {
+                    console.warn('⚠️ Permissão de notificação não concedida. FCM não será registrado.');
+                    return;
+                }
+                
                 // Tenta obter o registro do service worker se ainda não tiver
                 if (!swRegistration && 'serviceWorker' in navigator) {
                     swRegistration = await navigator.serviceWorker.ready;
+                    console.log('✅ Service Worker pronto para FCM.');
                 }
 
                 const token = await messaging.getToken({
@@ -723,11 +847,20 @@
                 });
 
                 if (token) {
-                    console.log("🔥 FCM Token:", token);
-                    firebase.database().ref('fcm_tokens/' + state.currentUser).set(token);
+                    console.log("✅ FCM Token obtido com sucesso!");
+                    console.log("🔥 Token:", token);
+                    await firebase.database().ref('fcm_tokens/' + state.currentUser).set(token);
+                    console.log("✅ Token FCM salvo no Firebase.");
+                } else {
+                    console.warn("⚠️ Não foi possível obter o token FCM.");
                 }
             } catch (err) {
-                console.error("Erro ao registrar FCM:", err);
+                console.error("❌ Erro ao registrar FCM:", err);
+                if (err.code === 'messaging/permission-blocked') {
+                    console.error('❌ Notificações bloqueadas pelo usuário.');
+                } else if (err.code === 'messaging/token-subscribe-failed') {
+                    console.error('❌ Falha ao se inscrever para notificações push.');
+                }
             }
         }
 
