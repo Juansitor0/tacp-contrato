@@ -605,16 +605,26 @@
         document.querySelectorAll('.expandable-header').forEach(h => h.onclick = () => h.parentElement.classList.toggle('expanded'));
         let sec = 0; setInterval(() => { sec++; let h=Math.floor(sec/3600).toString().padStart(2,'0'), m=Math.floor((sec%3600)/60).toString().padStart(2,'0'), s=(sec%60).toString().padStart(2,'0'); document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`; }, 1000);
     
+        let swRegistration = null;
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
-            .then(() => console.log("Motor de segundo plano ativo!"))
+            .then(reg => {
+                console.log("Motor de segundo plano ativo!");
+                swRegistration = reg;
+            })
             .catch(err => console.log("Erro no Motor:", err));
         }
         const messaging = firebase.messaging();
 
         async function registrarFCM() {
             try {
+                // Tenta obter o registro do service worker se ainda não tiver
+                if (!swRegistration && 'serviceWorker' in navigator) {
+                    swRegistration = await navigator.serviceWorker.ready;
+                }
+
                 const token = await messaging.getToken({
+                    serviceWorkerRegistration: swRegistration,
                     vapidKey: "BBkKvm1cWf-3jw9govGz9Iud--j8Ct5BGbTCfF3Jtx-YrYjTs-jIAC6LgOgVRKlweLuzI9GvBFFVBVLRp0LItVQ"
                 });
 
