@@ -238,17 +238,17 @@
             5: { title: "CLÁUSULA 5 – DISPOSIÇÕES GERAIS", content: "O acordo sério será discutido em reunião oficial. A Contratada fica impedida de apresentar desistência." }
         };
 
-        let state = { currentUser: null, clauses: JSON.parse(JSON.stringify(defaultClauses)), pendingEdits: {}, checkboxes: {}, biometria: { juan: [50,50,50,50,100], mici: [50,50,50,50,100] }, locations: { juan: {lat:0, lon:0}, mici: {lat:0, lon:0} }, currentMusic: null };
+        let state = { currentUser: null, clauses: JSON.parse(JSON.stringify(defaultClauses)), pendingEdits: {}, checkboxes: {}, biometria: { juan: [50,50,50,50], mici: [50,50,50,50] }, locations: { juan: {lat:0, lon:0}, mici: {lat:0, lon:0} }, currentMusic: null };
         let chart;
         let blinkInterval = null;
         let isFirstLoad = true;
         let avisouProximidade = false;
+        let alertaBiometriaAtivo = false;
+        let syncingFromFirebase = false;
+
         const sessionStartTime = Date.now();
 
-        let alertasAtivos = {
-            mici: { Fome: false, Paciência: false, Tristeza: false, Felicidade: false },
-            juan: { Fome: false, Paciência: false, Tristeza: false, Felicidade: false }
-        };
+       
 
         async function handleLogin() {
             const user = document.getElementById('login-user').value;
@@ -312,79 +312,82 @@
             });
 
             db.ref('tacp_contract').on('value', snap => {
-                if (snap.exists()) {
-                    const data = snap.val();
-                    const oldPending = JSON.stringify(state.pendingEdits);
-                    
-                    state.clauses = data.clauses || state.clauses;
-                    state.pendingEdits = data.pendingEdits || {};
-                    state.checkboxes = data.checkboxes || {};
-                    state.locations = data.locations || state.locations;
-                    state.biometria = {
-                        juan: data.biometria?.juan || state.biometria.juan,
-                        mici: data.biometria?.mici || state.biometria.mici
-                    };
+                if (!snap.exists()) return;
 
-                    
+                syncingFromFirebase = true;
 
-                    // Notificações para o Juan (Monitorando a Mici)
-                    if (state.currentUser === 'juan') {
-                        const bio = state.biometria.mici;
-                        const labels = ['Fome', 'Paciência', 'Tristeza', 'Felicidade'];
-                        let nivelCriticoGlobal = false;
+                const data = snap.val();
 
-                        bio.forEach((val, i) => {
-                            if (i < 4) {
-                                const label = labels[i];
-                                let isCritical = false;
-                                
-                                // Lógica de Alerta: Paciência e Felicidade alertam quando BAIXAS
-                                // Fome e Tristeza alertam quando ALTAS
-                                if (label === 'Paciência' || label === 'Felicidade') {
-                                    isCritical = val < 20;
-                                } else {
-                                    isCritical = val > 80;
-                                }
+                state.clauses = data.clauses || state.clauses;
+                state.pendingEdits = data.pendingEdits || {};
+                state.checkboxes = data.checkboxes || {};
+                state.locations = data.locations || state.locations;
 
-                                if (isCritical) {
-                                    nivelCriticoGlobal = true;
-                                    if (!isFirstLoad && !alertasAtivos.mici[label]) {
-                                        const msg = (label === 'Paciência' || label === 'Felicidade') ? `Nível muito baixo!` : `Nível crítico detectado!`;
-                                        triggerNotification(`⚠️ ${label.toUpperCase()}`, msg);
-                                        alertasAtivos.mici[label] = true;
-                                    }
-                                } else {
-                                    // Reset do alerta com margem de segurança
-                                    if (label === 'Paciência' || label === 'Felicidade') {
-                                        if (val > 30) alertasAtivos.mici[label] = false;
-                                    } else {
-                                        if (val < 70) alertasAtivos.mici[label] = false;
-                                    }
-                                }
-                            }
-                        });
+                const safeBiometria = data.biometria || {};
 
-                        const chartEl = document.getElementById('radarChart');
-                        chartEl.style.boxShadow = nivelCriticoGlobal ? '0 0 25px var(--alert-red)' : 'none';
+                state.biometria = {
+                    juan: Array.isArray(safeBiometria.juan)
+                        ? safeBiometria.juan
+                        : [50, 50, 50, 50],
+
+                    mici: Array.isArray(safeBiometria.mici)
+                        ? safeBiometria.mici
+                        : [50, 50, 50, 50]
+                };
+
+
+
+                state.currentMusic = data.currentMusic || state.currentMusic;
+
+               // 🔔 ALERTAS (Juan monitora Mici)
+                if (state.currentUser === 'juan') {
+                    const bio = state.biometria.mici;
+                    const labels = ['Fome', 'Paciência', 'Tristeza', 'Felicidade'];
+                    let nivelCriticoGlobal = false;
+
+                    bio.forEach((val, i) => {
+                        const isCritical =
+                            (labels[i] === 'Paciência' || labels[i] === 'Felicidade')
+                            ? val < 20
+                            : val > 80;
+
+                        if (isCritical) nivelCriticoGlobal = true;
+                    });
+
+                    // 🎯 EFEITO VISUAL
+                    document.getElementById('radarChart').style.boxShadow =
+                        nivelCriticoGlobal ? '0 0 25px var(--alert-red)' : 'none';
+
+                        
+                    // 🔔 NOTIFICAÇÃO (ADICIONAR AQUI 👇)
+                    if (nivelCriticoGlobal && !alertaBiometriaAtivo) {
+                        triggerNotification(
+                            '⚠️ BIOMETRIA CRÍTICA',
+                            'Níveis emocionais da Mici estão fora do padrão.'
+                        );
+                        alertaBiometriaAtivo = true;
                     }
-                    // --- FIM DO BLOCO DE BIOMETRIA ---
 
-                    // 2. Atualiza a UI (Mantenha o resto)
-                    renderClauses(); 
-                    updateChart(); 
-                    updateDeployButton(); 
-                    syncSliders();
-                    updateChart();
-                    
-                    // Só atualiza o player se a URL mudou para evitar loop/piscada
-                    if (state.currentMusic !== data.currentMusic || isFirstLoad) {
-                        state.currentMusic = data.currentMusic;
-                        updateMusicPlayer(state.currentMusic);
+                    if (!nivelCriticoGlobal) {
+                        alertaBiometriaAtivo = false;
                     }
-                    
-                    isFirstLoad = false;
                 }
+
+                renderClauses();
+                syncSliders();
+                updateChart();
+                updateDeployButton();
+                updateMusicPlayer(state.currentMusic);
+                atualizarDistancia();
+
+                syncingFromFirebase = false;
+                isFirstLoad = false;
             });
+
+
+                    
+
+                   
 
             db.ref('chat').on('child_added', snap => {
                 const m = snap.val();
@@ -400,7 +403,8 @@
                 }
             });
 
-            initRadar(); iniciarGPS();
+            initRadar(); 
+            iniciarGPS();
         }
 
         function triggerNotification(title, body) {
@@ -469,22 +473,24 @@
 
         window.toggleCheck = (i, checked) => { state.checkboxes[i] = checked; save(); };
         let saveTimeout;
+
         function save() {
+            if (syncingFromFirebase) return;
+
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => {
-                const dataToSave = { 
-                    clauses: state.clauses, 
-                    pendingEdits: state.pendingEdits, 
-                    checkboxes: state.checkboxes, 
-                    biometria: state.biometria, 
-                    locations: state.locations, 
-                    currentMusic: state.currentMusic 
-                };
-                console.log("Salvando dados no Firebase:", dataToSave);
-                db.ref('tacp_contract').update(dataToSave);
-            }, 500);
-        }
+                db.ref('tacp_contract').update({
+                    biometria: state.biometria,
+                    clauses: state.clauses,
+                    pendingEdits: state.pendingEdits,
+                    checkboxes: state.checkboxes,
+                    locations: state.locations,
+                    currentMusic: state.currentMusic
+                });
+            }, 400);
+}
 
+        
         function shareMusic() {
             const linkInput = document.getElementById('spotify-link');
             let link = linkInput.value.trim();
@@ -606,14 +612,56 @@
         }
 
         function initRadar() {
+
+            // ✅ CORREÇÃO: evita gráfico duplicado
+            if (chart) chart.destroy();
+
             const ctx = document.getElementById('radarChart').getContext('2d');
             chart = new Chart(ctx, {
                 type: 'radar',
-                data: { labels: ['Fome', 'Paciência', 'Tristeza', 'Felicidade' ], datasets: [{label:'Juan', data:state.biometria.juan, borderColor:'#00ff41', backgroundColor:'rgba(0,255,65,0.1)'}, {label:'Mici', data:state.biometria.mici, borderColor:'#00d2ff', backgroundColor:'rgba(0,210,255,0.1)'}] },
-                options: { responsive:true, maintainAspectRatio:false, scales:{r:{grid:{color:'#333'}, ticks:{display:false}, pointLabels:{color:'#8b949e', font:{size:11}}}}, plugins:{legend:{labels:{color:'#fff', font:{size:11}}}} }
+                data: {
+                    labels: ['Fome', 'Paciência', 'Tristeza', 'Felicidade'],
+                    datasets: [
+                        {
+                            label: 'Juan',
+                            data: state.biometria.juan.slice(0,4),
+                            borderColor:'#00ff41',
+                            backgroundColor:'rgba(0,255,65,0.1)'
+                        },
+                        {
+                            label: 'Mici',
+                            data: state.biometria.mici.slice(0,4),
+                            borderColor:'#00d2ff',
+                            backgroundColor:'rgba(0,210,255,0.1)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive:true,
+                    maintainAspectRatio:false,
+                    scales:{
+                        r:{
+                            grid:{color:'#333'},
+                            ticks:{display:false},
+                            pointLabels:{color:'#8b949e', font:{size:11}}
+                        }
+                    },
+                    plugins:{
+                        legend:{labels:{color:'#fff', font:{size:11}}}
+                    }
+                }
             });
         }
-        function updateChart() { if(chart){ chart.data.datasets[0].data = state.biometria.juan; chart.data.datasets[1].data = state.biometria.mici; chart.update(); } }
+
+        function updateChart() {
+            if (!chart) return;
+
+            chart.data.datasets[0].data = (state.biometria.juan || [50,50,50,50]).slice(0,4);
+            chart.data.datasets[1].data = (state.biometria.mici || [50,50,50,50]).slice(0,4);
+            chart.update();
+        }
+                
+
 
         document.querySelectorAll('.status-slider').forEach(s => {
             s.addEventListener('input', (e) => {
