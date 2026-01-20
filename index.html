@@ -8,6 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -474,7 +475,12 @@
                     if (parts.length >= 5) {
                         const type = parts[3];
                         const id = parts[4];
-                        embedUrl = `https://open.spotify.com/embed/${type}/${id}`;
+                        // Garante que o tipo seja track, album ou playlist para o embed
+                        if (['track', 'album', 'playlist'].includes(type)) {
+                            embedUrl = `https://open.spotify.com/embed/${type}/${id}`;
+                        } else {
+                            throw new Error("Tipo de link não suportado");
+                        }
                     } else {
                         throw new Error("Link inválido");
                     }
@@ -499,7 +505,7 @@
         function updateMusicPlayer(url) {
             const container = document.getElementById('spotify-player-container');
             if (url && container) {
-                container.innerHTML = `<iframe class="spotify-embed" src="${url}" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+                container.innerHTML = `<iframe class="spotify-embed" src="${url}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
             }
         }
 
