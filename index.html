@@ -358,7 +358,7 @@
                     document.getElementById('radarChart').style.boxShadow =
                         nivelCriticoGlobal ? '0 0 25px var(--alert-red)' : 'none';
 
-                        
+
                     // 🔔 NOTIFICAÇÃO (ADICIONAR AQUI 👇)
                     if (nivelCriticoGlobal && !alertaBiometriaAtivo) {
                         triggerNotification(
@@ -375,7 +375,7 @@
 
                 renderClauses();
                 syncSliders();
-                updateChart();
+                updateChart(true);
                 updateDeployButton();
                 updateMusicPlayer(state.currentMusic);
                 atualizarDistancia();
@@ -404,6 +404,7 @@
             });
 
             initRadar(); 
+            updateChart(true);
             iniciarGPS();
         }
 
@@ -653,14 +654,15 @@
             });
         }
 
-        function updateChart() {
+       function updateChart(force = false) {
             if (!chart) return;
 
-            chart.data.datasets[0].data = (state.biometria.juan || [50,50,50,50]).slice(0,4);
-            chart.data.datasets[1].data = (state.biometria.mici || [50,50,50,50]).slice(0,4);
-            chart.update();
+            chart.data.datasets[0].data = [...(state.biometria.juan || [50,50,50,50])].slice(0,4);
+            chart.data.datasets[1].data = [...(state.biometria.mici || [50,50,50,50])].slice(0,4);
+
+            chart.update(force ? 'none' : undefined);
         }
-                
+                        
 
 
         document.querySelectorAll('.status-slider').forEach(s => {
