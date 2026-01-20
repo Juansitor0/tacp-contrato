@@ -19,6 +19,15 @@ firebase.initializeApp({
 /* 📲 Firebase Messaging */
 const messaging = firebase.messaging();
 
+/* ✅ Garante atualização imediata do Service Worker */
+self.addEventListener('install', event => {
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+    event.waitUntil(clients.claim());
+});
+
 /* =====================================================
    🔔 PUSH EM SEGUNDO PLANO (APP FECHADO / ABA FECHADA)
    ===================================================== */

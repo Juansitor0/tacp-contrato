@@ -608,11 +608,18 @@
             }
         }
 
+        let lastMusicUrl = "";
         function updateMusicPlayer(url) {
             const container = document.getElementById('spotify-player-container');
-            if (url && container) {
+            if (!container) return;
+            
+            // ✅ CORREÇÃO: Evita recarregar o iframe se a URL for a mesma
+            if (url === lastMusicUrl) return;
+            lastMusicUrl = url;
+
+            if (url) {
                 container.innerHTML = `<iframe class="spotify-embed" src="${url}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
-            } else if (container) {
+            } else {
                 container.innerHTML = '<p style="font-size: 0.7rem; color: var(--text-gray); text-align: center;">Nenhuma música compartilhada ainda.</p>';
             }
         }
@@ -797,6 +804,11 @@
     
         let swRegistration = null;
         if ('serviceWorker' in navigator) {
+            // ✅ CORREÇÃO: Verifica se está em ambiente seguro (HTTPS ou localhost)
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                console.warn("⚠️ Notificações Push requerem HTTPS para funcionar corretamente.");
+            }
+
             navigator.serviceWorker.register('sw.js')
             .then(reg => {
                 console.log("✅ Service Worker registrado com sucesso!");
@@ -807,6 +819,8 @@
                     console.log("✅ Service Worker está ativo.");
                 } else {
                     console.log("⏳ Service Worker está instalando...");
+                    // Força ativação se estiver esperando
+                    if (reg.waiting) reg.waiting.postMessage({type: 'SKIP_WAITING'});
                 }
             })
             .catch(err => {
@@ -829,6 +843,12 @@
 
         async function registrarFCM() {
             try {
+                // ✅ CORREÇÃO: Verifica suporte antes de prosseguir
+                if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                    console.warn('⚠️ Notificações Push não são suportadas neste navegador.');
+                    return;
+                }
+
                 // Verifica se as notificações estão permitidas
                 if (Notification.permission !== 'granted') {
                     console.warn('⚠️ Permissão de notificação não concedida. FCM não será registrado.');
@@ -836,9 +856,15 @@
                 }
                 
                 // Tenta obter o registro do service worker se ainda não tiver
-                if (!swRegistration && 'serviceWorker' in navigator) {
+                if (!swRegistration) {
                     swRegistration = await navigator.serviceWorker.ready;
                     console.log('✅ Service Worker pronto para FCM.');
+                }
+
+                // ✅ CORREÇÃO: Garante que o pushManager existe no registro
+                if (!swRegistration.pushManager) {
+                    console.error('❌ pushManager não encontrado no Service Worker. Verifique se está em HTTPS.');
+                    return;
                 }
 
                 const token = await messaging.getToken({
