@@ -160,12 +160,11 @@
                 <div class="expandable-section expanded" id="expandable-controls">
                     <div class="expandable-header"><span>MEUS STATUS</span><span>▼</span></div>
                     <div class="expandable-content">
-                        <div class="status-control"><div class="status-label-row"><span>FOME 🍕</span><span id="val-0">50%</span></div><input type="range" class="status-slider" data-index="0" min="0" max="100"></div>
-                        <div class="status-control"><div class="status-label-row"><span>PACIÊNCIA 🧘</span><span id="val-1">50%</span></div><input type="range" class="status-slider" data-index="1" min="0" max="100"></div>
-                        <div class="status-control"><div class="status-label-row"><span>TRISTEZA ☁️</span><span id="val-2">50%</span></div><input type="range" class="status-slider" data-index="2" min="0" max="100"></div>
-                        <div class="status-control"><div class="status-label-row"><span>FELICIDADE ✨</span><span id="val-3">50%</span></div><input type="range" class="status-slider" data-index="3" min="0" max="100"></div>
-                        <div class="status-control"><div class="status-label-row"><span>AMOR ❤️</span><span id="val-4">50%</span></div><input type="range" class="status-slider" data-index="4" min="0" max="100"></div>
-                    </div>
+                        <div class="status-control"><div class="status-label-row"><span>FOME </span><span id="val-0">50%</span></div><input type="range" class="status-slider" data-index="0" min="0" max="100"></div>
+                        <div class="status-control"><div class="status-label-row"><span>PACIÊNCIA </span><span id="val-1">50%</span></div><input type="range" class="status-slider" data-index="1" min="0" max="100"></div>
+                        <div class="status-control"><div class="status-label-row"><span>TRISTEZA </span><span id="val-2">50%</span></div><input type="range" class="status-slider" data-index="2" min="0" max="100"></div>
+                        <div class="status-control"><div class="status-label-row"><span>FELICIDADE </span><span id="val-3">50%</span></div><input type="range" class="status-slider" data-index="3" min="0" max="100"></div>
+                            </div>
                 </div>
                 <div class="expandable-section" id="expandable-notif" style="margin-top:10px;">
                     <div class="expandable-header"><span>NOTIFICAÇÕES</span><span>▼</span></div>
@@ -575,7 +574,7 @@
             const ctx = document.getElementById('radarChart').getContext('2d');
             chart = new Chart(ctx, {
                 type: 'radar',
-                data: { labels: ['Fome', 'Paciência', 'Tristeza', 'Felicidade', 'Amor'], datasets: [{label:'Juan', data:state.biometria.juan, borderColor:'#00ff41', backgroundColor:'rgba(0,255,65,0.1)'}, {label:'Mici', data:state.biometria.mici, borderColor:'#00d2ff', backgroundColor:'rgba(0,210,255,0.1)'}] },
+                data: { labels: ['Fome', 'Paciência', 'Tristeza', 'Felicidade' ], datasets: [{label:'Juan', data:state.biometria.juan, borderColor:'#00ff41', backgroundColor:'rgba(0,255,65,0.1)'}, {label:'Mici', data:state.biometria.mici, borderColor:'#00d2ff', backgroundColor:'rgba(0,210,255,0.1)'}] },
                 options: { responsive:true, maintainAspectRatio:false, scales:{r:{grid:{color:'#333'}, ticks:{display:false}, pointLabels:{color:'#8b949e', font:{size:11}}}}, plugins:{legend:{labels:{color:'#fff', font:{size:11}}}} }
             });
         }
