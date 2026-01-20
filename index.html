@@ -48,12 +48,21 @@
             padding: 15px; flex-direction: column; gap: 15px; min-height: 100vh;
         }
         @media (min-width: 768px) { #dashboard { margin: 20px auto; border-radius: 8px; min-height: auto; padding: 25px; width: 95%; } }
-        header { border-bottom: 2px solid var(--neon-blue); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+        header { border-bottom: 2px solid var(--neon-blue); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; contain: layout; }
         h1 { color: var(--neon-blue); font-size: 1.3rem; margin: 0; text-transform: uppercase; }
         .system-status { font-size: 0.7rem; text-align: right; flex-grow: 1; line-height: 1.4; }
         .user-info-bar { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; font-size: 0.75rem; border: 1px solid #30363d; }
-        .main-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .main-grid { display: grid; grid-template-columns: 1fr; gap: 15px; will-change: transform; }
         @media (min-width: 768px) { .main-grid { grid-template-columns: 1.2fr 0.8fr; } }
+        
+        /* Music Section Styles */
+        .music-section { background: rgba(0, 0, 0, 0.3); border: 1px solid #30363d; border-radius: 4px; padding: 15px; margin-top: 15px; }
+        .music-header { color: var(--neon-blue); font-size: 0.9rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .music-input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .music-input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #30363d; padding: 10px; color: white; border-radius: 4px; font-family: inherit; font-size: 0.8rem; }
+        .btn-music { background: transparent; border: 1px solid var(--matrix-green); color: var(--matrix-green); padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 0.8rem; }
+        .spotify-embed { width: 100%; border-radius: 12px; border: none; height: 152px; }
+        .minecraft-font { font-family: 'Courier New', Courier, monospace; font-weight: bold; letter-spacing: 1px; }
         .metric-card-graph { background: rgba(0, 0, 0, 0.3); border: 1px solid #30363d; padding: 10px; border-radius: 4px; display: flex; flex-direction: column; align-items: center; width: 100%; }
         .chart-container { position: relative; height: 280px; width: 100%; max-width: 400px; }
         .expandable-section { background: rgba(0, 0, 0, 0.3); border: 1px solid #30363d; border-radius: 4px; overflow: hidden; }
@@ -131,15 +140,30 @@
             <div class="metric-card-graph">
                 <span style="font-size: 0.65rem; color: var(--text-gray); text-transform: uppercase; margin-bottom: 5px;">Biometria Emocional</span>
                 <div class="chart-container"><canvas id="radarChart"></canvas></div>
+                
+                <!-- Music Section -->
+                <div class="music-section" style="width: 100%; margin-top: 20px;">
+                    <div class="music-header">
+                        <span style="font-size: 1.2rem;">🎵</span> <span class="minecraft-font">SINTONIZADOS</span>
+                        <span style="margin-left: auto; font-size: 0.8rem; opacity: 0.5;">⛏️</span>
+                    </div>
+                    <div class="music-input-group">
+                        <input type="text" id="spotify-link" class="music-input" placeholder="Cole o link do Spotify aqui...">
+                        <button class="btn-music" onclick="shareMusic()">ENVIAR</button>
+                    </div>
+                    <div id="spotify-player-container">
+                        <p style="font-size: 0.7rem; color: var(--text-gray); text-align: center;">Nenhuma música compartilhada ainda.</p>
+                    </div>
+                </div>
             </div>
             <div>
                 <div class="expandable-section expanded" id="expandable-controls">
                     <div class="expandable-header"><span>MEUS STATUS</span><span>▼</span></div>
                     <div class="expandable-content">
-                        <div class="status-control"><div class="status-label-row"><span>FOME</span><span id="val-0">50%</span></div><input type="range" class="status-slider" data-index="0" min="0" max="100"></div>
+                        <div class="status-control"><div class="status-label-row"><span>AMOR ❤️</span><span id="val-4">50%</span></div><input type="range" class="status-slider" data-index="4" min="0" max="100"></div>
                         <div class="status-control"><div class="status-label-row"><span>PACIÊNCIA</span><span id="val-1">50%</span></div><input type="range" class="status-slider" data-index="1" min="0" max="100"></div>
                         <div class="status-control"><div class="status-label-row"><span>SAUDADE</span><span id="val-2">50%</span></div><input type="range" class="status-slider" data-index="2" min="0" max="100"></div>
-                        <div class="status-control"><div class="status-label-row"><span>ENERGIA</span><span id="val-3">50%</span></div><input type="range" class="status-slider" data-index="3" min="0" max="100"></div>
+                        <div class="status-control"><div class="status-label-row"><span>ENERGIA ⚡</span><span id="val-3">50%</span></div><input type="range" class="status-slider" data-index="3" min="0" max="100"></div>
                     </div>
                 </div>
                 <div class="expandable-section" id="expandable-notif" style="margin-top:10px;">
@@ -208,7 +232,7 @@
             5: { title: "CLÁUSULA 5 – DISPOSIÇÕES GERAIS", content: "O acordo sério será discutido em reunião oficial. A Contratada fica impedida de apresentar desistência." }
         };
 
-        let state = { currentUser: null, clauses: JSON.parse(JSON.stringify(defaultClauses)), pendingEdits: {}, checkboxes: {}, biometria: { juan: [50,50,50,50,100], mici: [50,50,50,50,100] }, locations: { juan: {lat:0, lon:0}, mici: {lat:0, lon:0} } };
+        let state = { currentUser: null, clauses: JSON.parse(JSON.stringify(defaultClauses)), pendingEdits: {}, checkboxes: {}, biometria: { juan: [50,50,50,50,100], mici: [50,50,50,50,100] }, locations: { juan: {lat:0, lon:0}, mici: {lat:0, lon:0} }, currentMusic: null };
         let chart;
         let blinkInterval = null;
         let isFirstLoad = true;
@@ -317,6 +341,7 @@
                     updateChart(); 
                     updateDeployButton(); 
                     syncSliders();
+                    updateMusicPlayer(state.currentMusic);
                     
                     isFirstLoad = false;
                 }
@@ -404,7 +429,52 @@
         }
 
         window.toggleCheck = (i, checked) => { state.checkboxes[i] = checked; save(); };
-        function save() { db.ref('tacp_contract').update({ clauses: state.clauses, pendingEdits: state.pendingEdits, checkboxes: state.checkboxes, biometria: state.biometria, locations: state.locations }); }
+        let saveTimeout;
+        function save() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                db.ref('tacp_contract').update({ 
+                    clauses: state.clauses, 
+                    pendingEdits: state.pendingEdits, 
+                    checkboxes: state.checkboxes, 
+                    biometria: state.biometria, 
+                    locations: state.locations, 
+                    currentMusic: state.currentMusic 
+                });
+            }, 500);
+        }
+
+        function shareMusic() {
+            const link = document.getElementById('spotify-link').value;
+            if (link.includes('spotify.com')) {
+                let embedUrl = link;
+                if (link.includes('open.spotify.com')) {
+                    const parts = link.split('/');
+                    const type = parts[3];
+                    const id = parts[4].split('?')[0];
+                    embedUrl = `https://open.spotify.com/embed/${type}/${id}`;
+                }
+                state.currentMusic = embedUrl;
+                save();
+                document.getElementById('spotify-link').value = '';
+                
+                // Notifica o outro usuário
+                db.ref('chat').push({ 
+                    user: 'system', 
+                    text: `🎵 ${state.currentUser.toUpperCase()} compartilhou uma nova música!`, 
+                    time: Date.now() 
+                });
+            } else {
+                alert('Por favor, insira um link válido do Spotify.');
+            }
+        }
+
+        function updateMusicPlayer(url) {
+            const container = document.getElementById('spotify-player-container');
+            if (url && container) {
+                container.innerHTML = `<iframe class="spotify-embed" src="${url}" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+            }
+        }
 
         function openModal(i) {
             const c = state.clauses[i] || defaultClauses[i];
@@ -483,12 +553,15 @@
         }
         function updateChart() { if(chart){ chart.data.datasets[0].data = state.biometria.juan; chart.data.datasets[1].data = state.biometria.mici; chart.update(); } }
 
-        document.querySelectorAll('.status-slider').forEach(s => s.oninput = (e) => { 
-            const idx = e.target.dataset.index;
-            const val = parseInt(e.target.value);
-            state.biometria[state.currentUser][idx] = val; 
-            document.getElementById(`val-${idx}`).innerText = val + "%";
-            updateChart(); save(); 
+        document.querySelectorAll('.status-slider').forEach(s => {
+            s.addEventListener('input', (e) => {
+                const idx = e.target.dataset.index;
+                const val = parseInt(e.target.value);
+                state.biometria[state.currentUser][idx] = val; 
+                document.getElementById(`val-${idx}`).innerText = val + "%";
+                updateChart();
+                save();
+            });
         });
 
         function updateDeployButton() { 
