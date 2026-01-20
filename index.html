@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TACP v3.0">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1182/1182761.png">
     <title>TACP v3.0 | Notificações Ativas</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
@@ -477,19 +481,23 @@
                     const cleanLink = link.split('?')[0];
                     const parts = cleanLink.split('/');
                     
-                    // O link do Spotify costuma ser: https://open.spotify.com/track/ID ou https://open.spotify.com/playlist/ID
-                    // parts[0]=https:, parts[1]="", parts[2]=open.spotify.com, parts[3]=type, parts[4]=id
-                    if (parts.length >= 5) {
-                        const type = parts[3];
-                        const id = parts[4];
-                        // Garante que o tipo seja track, album ou playlist para o embed
-                        if (['track', 'album', 'playlist'].includes(type)) {
-                            embedUrl = `https://open.spotify.com/embed/${type}/${id}`;
-                        } else {
-                            throw new Error("Tipo de link não suportado");
-                        }
+                    // Suporta links como:
+                    // https://open.spotify.com/track/ID
+                    // https://open.spotify.com/intl-pt/track/ID
+                    // https://open.spotify.com/playlist/ID
+                    
+                    const trackMatch = link.match(/track\/([a-zA-Z0-9]+)/);
+                    const playlistMatch = link.match(/playlist\/([a-zA-Z0-9]+)/);
+                    const albumMatch = link.match(/album\/([a-zA-Z0-9]+)/);
+
+                    if (trackMatch) {
+                        embedUrl = `https://open.spotify.com/embed/track/${trackMatch[1]}`;
+                    } else if (playlistMatch) {
+                        embedUrl = `https://open.spotify.com/embed/playlist/${playlistMatch[1]}`;
+                    } else if (albumMatch) {
+                        embedUrl = `https://open.spotify.com/embed/album/${albumMatch[1]}`;
                     } else {
-                        throw new Error("Link inválido");
+                        throw new Error("Tipo de link não suportado ou inválido");
                     }
 
                     state.currentMusic = embedUrl;

@@ -23,12 +23,16 @@ self.addEventListener('push', function(event) {
 
   const notificationTitle = data.notification?.title || "TACP Notificação";
   const notificationOptions = {
-    body: data.notification?.body || "Você tem uma nova atualização.",
+    body: data.notification?.body || data.body || "Você tem uma nova atualização.",
     icon: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
     badge: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
     vibrate: [200, 100, 200],
-    tag: 'tacp-notification', // Evita múltiplas notificações iguais
+    tag: 'tacp-notification',
     renotify: true,
+    requireInteraction: true,
+    actions: [
+      { action: 'open', title: 'Abrir TACP' }
+    ],
     data: {
       url: self.location.origin
     }
@@ -50,6 +54,7 @@ messaging.onBackgroundMessage(function(payload) {
     vibrate: [200, 100, 200],
     tag: 'tacp-notification',
     renotify: true,
+    requireInteraction: true,
     data: {
       url: self.location.origin
     }
