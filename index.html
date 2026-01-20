@@ -320,7 +320,12 @@
                     state.pendingEdits = data.pendingEdits || {};
                     state.checkboxes = data.checkboxes || {};
                     state.locations = data.locations || state.locations;
-                    state.biometria = data.biometria || state.biometria;
+                    state.biometria = {
+                        juan: data.biometria?.juan || state.biometria.juan,
+                        mici: data.biometria?.mici || state.biometria.mici
+                    };
+
+                    
 
                     // Notificações para o Juan (Monitorando a Mici)
                     if (state.currentUser === 'juan') {
@@ -369,6 +374,7 @@
                     updateChart(); 
                     updateDeployButton(); 
                     syncSliders();
+                    updateChart();
                     
                     // Só atualiza o player se a URL mudou para evitar loop/piscada
                     if (state.currentMusic !== data.currentMusic || isFirstLoad) {
@@ -615,8 +621,7 @@
                 const val = parseInt(e.target.value);
                 state.biometria[state.currentUser][idx] = val; 
                 document.getElementById(`val-${idx}`).innerText = val + "%";
-                updateChart();
-                save();
+                save(); // ✅ apenas salva
             });
         });
 
