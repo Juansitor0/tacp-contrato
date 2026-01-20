@@ -277,6 +277,13 @@
                 document.getElementById('dashboard').style.display = 'flex';
                 document.getElementById('chat-widget').style.display = 'flex';
                 initSystem();
+                
+                // Registra o FCM após garantir que o usuário está logado
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        registrarFCM();
+                    }
+                });
             } else {
                 document.getElementById('login-screen').style.display = 'block';
                 document.getElementById('dashboard').style.display = 'none';
@@ -637,11 +644,7 @@
             }
         }
 
-        Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-                registrarFCM();
-            }
-        });
+        // O registro do FCM agora é chamado dentro do onAuthStateChanged
 
         </script>
     </body>
