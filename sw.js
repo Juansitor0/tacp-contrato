@@ -1,6 +1,11 @@
+/* ================================
+   Service Worker - Firebase FCM
+   ================================ */
+
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
+/* 🔥 Firebase config */
 firebase.initializeApp({
     apiKey: "AIzaSyDeXp1gHm2cyd0MPRbyj7NMm0HlnlI9tCE",
     authDomain: "contrato-online.firebaseapp.com",
@@ -11,72 +16,49 @@ firebase.initializeApp({
     appId: "1:707541071284:web:6bc61a769477e24feeaee1"
 });
 
+/* 📲 Firebase Messaging */
 const messaging = firebase.messaging();
 
-// Listener para mensagens push do FCM
-self.addEventListener('push', function(event) {
-  console.log('[sw.js] Push recebido:', event);
-  let data = {};
-  if (event.data) {
-    data = event.data.json();
-  }
+/* =====================================================
+   🔔 PUSH EM SEGUNDO PLANO (APP FECHADO / ABA FECHADA)
+   ===================================================== */
+messaging.onBackgroundMessage(function (payload) {
+    console.log('[sw.js] Push FCM recebido:', payload);
 
-  const notificationTitle = data.notification?.title || "TACP Notificação";
-  const notificationOptions = {
-    body: data.notification?.body || data.body || "Você tem uma nova atualização.",
-    icon: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
-    badge: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
-    vibrate: [200, 100, 200],
-    tag: 'tacp-notification',
-    renotify: true,
-    requireInteraction: true,
-    actions: [
-      { action: 'open', title: 'Abrir TACP' }
-    ],
-    data: {
-      url: self.location.origin
-    }
-  };
+    const notificationTitle =
+        payload.notification?.title || 'TACP Notificação';
 
-  event.waitUntil(
-    self.registration.showNotification(notificationTitle, notificationOptions)
-  );
-});
-
-// Fallback para o método compat do Firebase
-messaging.onBackgroundMessage(function(payload) {
-  console.log('[sw.js] Mensagem em segundo plano recebida:', payload);
-  const notificationTitle = payload.notification.title || "TACP Notificação";
-  const notificationOptions = {
-    body: payload.notification.body || "Você tem uma nova atualização.",
-    icon: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
-    badge: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
-    vibrate: [200, 100, 200],
-    tag: 'tacp-notification',
-    renotify: true,
-    requireInteraction: true,
-    data: {
-      url: self.location.origin
-    }
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});
-
-self.addEventListener('notificationclick', function(event) {
-  event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-      if (clientList.length > 0) {
-        let client = clientList[0];
-        for (let i = 0; i < clientList.length; i++) {
-          if (clientList[i].focused) {
-            client = clientList[i];
-          }
+    const notificationOptions = {
+        body: payload.notification?.body || 'Você tem uma nova atualização.',
+        icon: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
+        badge: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
+        vibrate: [200, 100, 200],
+        tag: 'tacp-notification',
+        renotify: true,
+        requireInteraction: true,
+        data: {
+            url: self.location.origin
         }
-        return client.focus();
-      }
-      return clients.openWindow('/');
-    })
-  );
+    };
+
+    self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+/* =====================================================
+   👉 CLIQUE NA NOTIFICAÇÃO
+   ===================================================== */
+self.addEventListener('notificationclick', function (event) {
+    event.notification.close();
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then(function (clientList) {
+                for (const client of clientList) {
+                    if ('focus' in client) {
+                        return client.focus();
+                    }
+                }
+                return clients.openWindow('/');
+            })
+    );
 });

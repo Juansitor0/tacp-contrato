@@ -409,24 +409,31 @@
         }
 
         function triggerNotification(title, body) {
-            if (document.getElementById('notif-blink').checked) {
+             // Piscar aba
+            if (document.getElementById('notif-blink')?.checked) {
                 if (blinkInterval) clearInterval(blinkInterval);
-                let originalTitle = document.title;
+                const originalTitle = document.title;
                 let isAlert = false;
+
                 blinkInterval = setInterval(() => {
                     document.title = isAlert ? `⚠️ ${title}` : originalTitle;
                     isAlert = !isAlert;
                 }, 1000);
-                setTimeout(() => { clearInterval(blinkInterval); document.title = originalTitle; }, 10000);
+
+                setTimeout(() => {
+                    clearInterval(blinkInterval);
+                    document.title = originalTitle;
+                }, 10000);
             }
-            if (document.getElementById('notif-vibrate').checked && navigator.vibrate) {
+
+            // Vibração
+            if (document.getElementById('notif-vibrate')?.checked && navigator.vibrate) {
                 navigator.vibrate([200, 100, 200]);
             }
-            if (Notification.permission === "granted") {
-                new Notification(title, { body: body });
-            }
-        }
 
+            // ⚠️ NÃO criar Notification aqui
+            // Push real vem do FCM
+        }
         function syncSliders() {
             state.biometria[state.currentUser].forEach((val, i) => {
                 const slider = document.querySelector(`.status-slider[data-index="${i}"]`);
@@ -693,6 +700,15 @@
             .catch(err => console.log("Erro no Motor:", err));
         }
         const messaging = firebase.messaging();
+
+        messaging.onMessage((payload) => {
+            console.log('📩 Push recebido (foreground):', payload);
+
+            const title = payload.notification?.title || 'TACP';
+            const body  = payload.notification?.body  || '';
+
+            triggerNotification(title, body);
+        });
 
         async function registrarFCM() {
             try {
