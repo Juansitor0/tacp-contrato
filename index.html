@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="TACP v3.0">
@@ -368,7 +369,12 @@
                     updateChart(); 
                     updateDeployButton(); 
                     syncSliders();
-                    updateMusicPlayer(state.currentMusic);
+                    
+                    // Só atualiza o player se a URL mudou para evitar loop/piscada
+                    if (state.currentMusic !== data.currentMusic || isFirstLoad) {
+                        state.currentMusic = data.currentMusic;
+                        updateMusicPlayer(state.currentMusic);
+                    }
                     
                     isFirstLoad = false;
                 }
@@ -460,14 +466,16 @@
         function save() {
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => {
-                db.ref('tacp_contract').update({ 
+                const dataToSave = { 
                     clauses: state.clauses, 
                     pendingEdits: state.pendingEdits, 
                     checkboxes: state.checkboxes, 
                     biometria: state.biometria, 
                     locations: state.locations, 
                     currentMusic: state.currentMusic 
-                });
+                };
+                console.log("Salvando dados no Firebase:", dataToSave);
+                db.ref('tacp_contract').update(dataToSave);
             }, 500);
         }
 
