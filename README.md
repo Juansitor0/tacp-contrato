@@ -2,6 +2,16 @@
 
 Esta é a versão aprimorada da aplicação TACP, agora com suporte a notificações multiplataforma, integração com Spotify e otimizações de performance.
 
+## 🔔 Notificações em Segundo Plano (Importante)
+Para que as notificações de mensagens apareçam em segundo plano (celular bloqueado ou app fechado), o sistema utiliza o **Firebase Cloud Messaging (FCM)**. 
+
+**Nota técnica**: Atualmente, as notificações de chat são enviadas via Realtime Database. Para que elas funcionem em segundo plano total (com o app fechado), seria necessário um servidor (Backend) para disparar o gatilho do FCM. Como esta é uma aplicação estática, as notificações de segundo plano funcionam melhor quando a aba está aberta em standby.
+
+### Como garantir o recebimento:
+1. Certifique-se de que as notificações estão **PERMITIDAS** no seu navegador/celular.
+2. No Android, mantenha a aba do Chrome aberta (mesmo que em segundo plano).
+3. No iOS, adicione à "Tela de Início" para melhor suporte.
+
 ## 🚀 Novidades da Versão 4.0
 
 ### 1. Notificações Multiplataforma

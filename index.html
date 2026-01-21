@@ -447,7 +447,12 @@
 
             // Vibração
             if (document.getElementById('notif-vibrate')?.checked && navigator.vibrate) {
-                navigator.vibrate([200, 100, 200]);
+                try {
+                    // ✅ CORREÇÃO: Evita erro se o usuário ainda não interagiu com a página
+                    navigator.vibrate([200, 100, 200]);
+                } catch (e) {
+                    console.warn('⚠️ Vibração bloqueada: aguardando interação do usuário.');
+                }
             }
 
             // ✅ CORREÇÃO: Criar notificação nativa do sistema
@@ -643,10 +648,23 @@
                 'https://open.spotify.com/embed/track/59NraMJsLaMCVbz1BebT2y', // As It Was
                 'https://open.spotify.com/embed/track/6X0V1u1BJu7cZub7J6vUrW', // Cruel Summer
                 'https://open.spotify.com/embed/track/1BxfuS2JvJJ6vMhC6cyPja', // Nightcall
-                'https://open.spotify.com/embed/track/37SNoSST799vY6YpXp9I7v'  // Starboy
+                'https://open.spotify.com/embed/track/37SNoSST799vY6YpXp9I7v', // Starboy
+                'https://open.spotify.com/embed/track/2CH79p7Y904X1Y3v6825pS', // Moonlight
+                'https://open.spotify.com/embed/track/09mEucvSqV31v9uccjsGqb'  // Circles
             ];
-            const randomUrl = playlist[Math.floor(Math.random() * playlist.length)];
+            
+            // ✅ CORREÇÃO: Garante que a música mude sempre
+            let randomUrl;
+            do {
+                randomUrl = playlist[Math.floor(Math.random() * playlist.length)];
+            } while (randomUrl === state.currentMusic && playlist.length > 1);
+
             state.currentMusic = randomUrl;
+            
+            // ✅ CORREÇÃO: Atualiza o player localmente primeiro para feedback instantâneo
+            updateMusicPlayer(randomUrl);
+            
+            // Salva no Firebase
             save();
             
             db.ref('chat').push({ 
