@@ -37,18 +37,15 @@
         }
         #login-screen {
             width: 90%; max-width: 400px; background: var(--card-bg); border: 1px solid var(--neon-blue);
-            padding: 30px; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 210, 255, 0.2); text-align: center; margin-top: 50px;
-        }
-        .input-group { margin-bottom: 15px; text-align: left; }
-        .input-group label { display: block; font-size: 0.7rem; color: var(--text-gray); margin-bottom: 5px; }
-        .input-group input, .input-group select {
-            width: 100%; background: rgba(0,0,0,0.3); border: 1px solid #30363d; padding: 12px;
-            color: white; border-radius: 4px; font-family: inherit; font-size: 1rem;
+            padding: 40px 30px; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 210, 255, 0.2); text-align: center; margin-top: 50px;
         }
         .btn-login {
-            width: 100%; padding: 15px; background: transparent; border: 1px solid var(--matrix-green);
-            color: var(--matrix-green); cursor: pointer; font-weight: bold; font-size: 1rem;
+            width: 100%; padding: 15px; background: white; border: none;
+            color: #000; cursor: pointer; font-weight: bold; font-size: 1rem;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            border-radius: 4px; transition: 0.3s;
         }
+        .btn-login:hover { background: #e1e1e1; transform: translateY(-2px); }
         #dashboard {
             display: none; width: 100%; max-width: 850px; background: var(--card-bg); border: 1px solid var(--neon-blue);
             padding: 15px; flex-direction: column; gap: 15px; min-height: 100vh;
@@ -111,20 +108,13 @@
 <body>
     <canvas id="confetti"></canvas>
     <div id="login-screen">
-        <h2 style="color: var(--neon-blue); letter-spacing: 2px;">TACP ACCESS</h2>
-        <div class="input-group">
-            <label>USUÁRIO</label>
-            <select id="login-user">
-                <option value="juan">Juan</option>
-                <option value="mici">Mici</option>
-            </select>
-        </div>
-        <div class="input-group">
-            <label>SENHA</label>
-            <input type="password" id="login-password" placeholder="••••••••">
-        </div>
-        <button class="btn-login" onclick="handleLogin()">ENTRAR</button>
-        <p id="login-error" style="color: var(--alert-red); font-size: 0.75rem; margin-top: 10px; display: none;"></p>
+        <h2 style="color: var(--neon-blue); letter-spacing: 2px; margin-bottom: 30px;">TACP ACCESS</h2>
+        <button class="btn-login" onclick="loginWithGoogle()">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="Google">
+            ENTRAR COM GOOGLE
+        </button>
+        <p id="login-error" style="color: var(--alert-red); font-size: 0.75rem; margin-top: 20px; display: none;"></p>
+        <p style="color: var(--text-gray); font-size: 0.6rem; margin-top: 30px; text-transform: uppercase;">Acesso restrito a usuários autorizados</p>
     </div>
 
     <div id="dashboard">
@@ -234,6 +224,7 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
+        const googleProvider = new firebase.auth.GoogleAuthProvider();
 
         const defaultClauses = {
             1: { title: "CLÁUSULA 1 – DA DISPONIBILIDADE", content: "Fica estabelecido que o Contratante continuará exercendo suas funções de quebra-galho oficial, incluindo idas emergenciais à farmácia e suporte 24/7 aos domingos." },
@@ -255,13 +246,15 @@
 
        
 
-        async function handleLogin() {
-            const user = document.getElementById('login-user').value;
-            const pass = document.getElementById('login-password').value;
-            const email = `${user}@tacp.com`;
-            try { await auth.signInWithEmailAndPassword(email, pass); 
-            requestNotifPermission(); }
-            catch (e) { try { await auth.createUserWithEmailAndPassword(email, pass); } catch (err) { document.getElementById('login-error').innerText = err.message; document.getElementById('login-error').style.display = 'block'; } }
+        async function loginWithGoogle() {
+            try {
+                const result = await auth.signInWithPopup(googleProvider);
+                console.log("✅ Login realizado:", result.user.email);
+            } catch (e) {
+                console.error("❌ Erro no login:", e);
+                document.getElementById('login-error').innerText = "Erro ao entrar com Google. Verifique se o provedor está ativo no Firebase.";
+                document.getElementById('login-error').style.display = 'block';
+            }
         }
 
         async function handleLogout() {
@@ -295,7 +288,21 @@
 
         auth.onAuthStateChanged(user => {
             if (user) {
-                state.currentUser = user.email.split('@')[0];
+                // Mapeamento de e-mails para nomes de exibição
+                const emailMap = {
+                    'juan': 'juan',
+                    'mici': 'mici'
+                };
+                
+                // Pega o nome antes do @ ou usa o mapeamento se necessário
+                let userName = user.email.split('@')[0].toLowerCase();
+                
+                // Se o e-mail for diferente (ex: gmail), tentamos identificar quem é
+                // Você pode ajustar esses e-mails conforme necessário
+                if (user.email.includes('juan')) userName = 'juan';
+                if (user.email.includes('mici')) userName = 'mici';
+
+                state.currentUser = userName;
                 document.getElementById('display-user').innerText = state.currentUser.toUpperCase();
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'flex';
@@ -634,7 +641,9 @@
             lastMusicUrl = url;
 
             if (url) {
-                container.innerHTML = `<iframe class="spotify-embed" src="${url}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+                // Adicionamos um timestamp para forçar o recarregamento se necessário e garantir a origem
+                const finalUrl = url.includes('?') ? `${url}&utm_source=tacp_app` : `${url}?utm_source=tacp_app`;
+                container.innerHTML = `<iframe class="spotify-embed" src="${finalUrl}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style="background: #000;"></iframe>`;
             } else {
                 container.innerHTML = '<p style="font-size: 0.7rem; color: var(--text-gray); text-align: center;">Nenhuma música compartilhada ainda.</p>';
             }
