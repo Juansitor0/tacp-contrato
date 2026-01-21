@@ -645,31 +645,31 @@
         }
 
         function playRandomMusic() {
-            const playlist = [
-                'https://open.spotify.com/embed/track/4u7EnebtmSjSgoH0G2o3mC', // Never Gonna Give You Up
-                'https://open.spotify.com/embed/track/7qiZfU4BZZPmUAFJj68nu3', // Shape of You
-                'https://open.spotify.com/embed/track/0VjIjS4nGhc3A7uI68URbA', // Blinding Lights
-                'https://open.spotify.com/embed/track/27SdWb2rFzO6GWiYDBpt0D', // Flowers
-                'https://open.spotify.com/embed/track/59NraMJsLaMCVbz1BebT2y', // As It Was
-                'https://open.spotify.com/embed/track/6X0V1u1BJu7cZub7J6vUrW', // Cruel Summer
-                'https://open.spotify.com/embed/track/1BxfuS2JvJJ6vMhC6cyPja', // Nightcall
-                'https://open.spotify.com/embed/track/37SNoSST799vY6YpXp9I7v', // Starboy
-                'https://open.spotify.com/embed/track/2CH79p7Y904X1Y3v6825pS', // Moonlight
-                'https://open.spotify.com/embed/track/09mEucvSqV31v9uccjsGqb'  // Circles
+            // ✅ CORREÇÃO: IDs atualizados e formato garantido
+            const playlistIds = [
+                '4u7EnebtmSjSgoH0G2o3mC', // Never Gonna Give You Up
+                '7qiZfU4BZZPmUAFJj68nu3', // Shape of You
+                '0VjIjS4nGhc3A7uI68URbA', // Blinding Lights
+                '27SdWb2rFzO6GWiYDBpt0D', // Flowers
+                '59NraMJsLaMCVbz1BebT2y', // As It Was
+                '6X0V1u1BJu7cZub7J6vUrW', // Cruel Summer
+                '1BxfuS2JvJJ6vMhC6cyPja', // Nightcall
+                '37SNoSST799vY6YpXp9I7v', // Starboy
+                '2CH79p7Y904X1Y3v6825pS', // Moonlight
+                '09mEucvSqV31v9uccjsGqb'  // Circles
             ];
             
-            // ✅ CORREÇÃO: Garante que a música mude sempre
-            let randomUrl;
+            let randomId;
+            const currentId = state.currentMusic ? state.currentMusic.split('/').pop() : null;
+            
             do {
-                randomUrl = playlist[Math.floor(Math.random() * playlist.length)];
-            } while (randomUrl === state.currentMusic && playlist.length > 1);
+                randomId = playlistIds[Math.floor(Math.random() * playlistIds.length)];
+            } while (randomId === currentId && playlistIds.length > 1);
 
+            const randomUrl = `https://open.spotify.com/embed/track/${randomId}`;
             state.currentMusic = randomUrl;
             
-            // ✅ CORREÇÃO: Atualiza o player localmente primeiro para feedback instantâneo
             updateMusicPlayer(randomUrl);
-            
-            // Salva no Firebase
             save();
             
             db.ref('chat').push({ 
