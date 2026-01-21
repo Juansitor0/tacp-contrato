@@ -21,11 +21,39 @@ const messaging = firebase.messaging();
 
 /* ✅ Garante atualização imediata do Service Worker */
 self.addEventListener('install', event => {
+    event.waitUntil(
+        caches.open('tacp-static-v1').then(cache => {
+            return cache.addAll([
+                '/',
+                '/index.html',
+                '/manifest.json'
+            ]);
+        })
+    );
     self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
-    event.waitUntil(clients.claim());
+    event.waitUntil(
+        Promise.all([
+            clients.claim(),
+            // Limpa caches antigos
+            caches.keys().then(cacheNames => {
+                return Promise.all(
+                    cacheNames.filter(name => name !== 'tacp-static-v1').map(name => caches.delete(name))
+                );
+            })
+        ])
+    );
+});
+
+// Estratégia de Cache: Network First para garantir dados atualizados
+self.addEventListener('fetch', event => {
+    event.respondWith(
+        fetch(event.request).catch(() => {
+            return caches.match(event.request);
+        })
+    );
 });
 
 /* =====================================================

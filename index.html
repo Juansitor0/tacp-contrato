@@ -157,9 +157,10 @@
                         <input type="text" id="spotify-link" class="music-input" placeholder="Cole o link do Spotify aqui..." onkeypress="if(event.key==='Enter') shareMusic()">
                         <button class="btn-music" onclick="shareMusic()">ENVIAR</button>
                     </div>
-                    <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                        <button class="btn-music" onclick="openSpotify()" style="flex: 1; font-size: 0.7rem; padding: 6px;">🎶 ABRIR SPOTIFY</button>
-                        <button class="btn-music" onclick="clearMusic()" style="flex: 1; font-size: 0.7rem; padding: 6px; border-color: var(--alert-red); color: var(--alert-red);">❌ LIMPAR</button>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                        <button class="btn-music" onclick="openSpotify()" style="flex: 1; min-width: 100px; font-size: 0.7rem; padding: 6px;">🎶 ABRIR SPOTIFY</button>
+                        <button class="btn-music" onclick="playRandomMusic()" style="flex: 1; min-width: 100px; font-size: 0.7rem; padding: 6px; border-color: var(--neon-blue); color: var(--neon-blue);">🎲 ALEATÓRIO</button>
+                        <button class="btn-music" onclick="clearMusic()" style="flex: 1; min-width: 100px; font-size: 0.7rem; padding: 6px; border-color: var(--alert-red); color: var(--alert-red);">❌ LIMPAR</button>
                     </div>
                     <div id="spotify-player-container">
                         <p style="font-size: 0.7rem; color: var(--text-gray); text-align: center;">Nenhuma música compartilhada ainda.</p>
@@ -469,9 +470,14 @@
                     
                     // Fechar automaticamente após 10 segundos
                     setTimeout(() => notification.close(), 10000);
-                } catch (err) {
-                    console.error('Erro ao criar notificação:', err);
+                } catch (e) {
+                    console.error('❌ Erro ao criar notificação:', e);
+                    // Fallback para alert se as notificações falharem e for importante
+                    if (title.includes('CRÍTICA')) alert(`${title}\n${body}`);
                 }
+            } else if ('Notification' in window && Notification.permission === 'default') {
+                // Se ainda não pediu permissão, tenta pedir agora (fallback)
+                Notification.requestPermission();
             }
         }
         function syncSliders() {
@@ -626,6 +632,30 @@
 
         function openSpotify() {
             window.open('https://open.spotify.com/', '_blank');
+        }
+
+        function playRandomMusic() {
+            const playlist = [
+                'https://open.spotify.com/embed/track/4u7EnebtmSjSgoH0G2o3mC', // Never Gonna Give You Up
+                'https://open.spotify.com/embed/track/7qiZfU4BZZPmUAFJj68nu3', // Shape of You
+                'https://open.spotify.com/embed/track/0VjIjS4nGhc3A7uI68URbA', // Blinding Lights
+                'https://open.spotify.com/embed/track/27SdWb2rFzO6GWiYDBpt0D', // Flowers
+                'https://open.spotify.com/embed/track/59NraMJsLaMCVbz1BebT2y', // As It Was
+                'https://open.spotify.com/embed/track/6X0V1u1BJu7cZub7J6vUrW', // Cruel Summer
+                'https://open.spotify.com/embed/track/1BxfuS2JvJJ6vMhC6cyPja', // Nightcall
+                'https://open.spotify.com/embed/track/37SNoSST799vY6YpXp9I7v'  // Starboy
+            ];
+            const randomUrl = playlist[Math.floor(Math.random() * playlist.length)];
+            state.currentMusic = randomUrl;
+            save();
+            
+            db.ref('chat').push({ 
+                user: 'system', 
+                text: `🎲 ${state.currentUser.toUpperCase()} escolheu uma música aleatória!`, 
+                time: Date.now() 
+            });
+            
+            triggerNotification('🎲 Música Aleatória', 'Uma música surpresa foi selecionada!');
         }
 
         function clearMusic() {
@@ -783,6 +813,12 @@
             s.addEventListener('input', (e) => {
                 const idx = e.target.dataset.index;
                 const val = parseInt(e.target.value);
+                
+                // ✅ CORREÇÃO: Garante que o array existe antes de atribuir
+                if (!state.biometria[state.currentUser]) {
+                    state.biometria[state.currentUser] = [50, 50, 50, 50];
+                }
+                
                 state.biometria[state.currentUser][idx] = val; 
                 document.getElementById(`val-${idx}`).innerText = val + "%";
                 
