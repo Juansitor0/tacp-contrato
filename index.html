@@ -661,8 +661,15 @@
                     playSpotifyTrack(trackId);
                 }
                 
-                const finalUrl = url.includes('?') ? `${url}&utm_source=tacp_app` : `${url}?utm_source=tacp_app`;
-                container.innerHTML = `<iframe class="spotify-embed" src="${finalUrl}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style="background: #000;"></iframe>`;
+                // ✅ MELHORIA: Usamos o domínio 'open.spotify.com' de forma limpa para evitar 404
+                let finalUrl = url;
+                if (!finalUrl.includes('embed')) {
+                    finalUrl = finalUrl.replace('open.spotify.com/', 'open.spotify.com/embed/');
+                }
+                // Adicionamos parâmetros para forçar o modo PWA amigável
+                finalUrl += (finalUrl.includes('?') ? '&' : '?') + 'utm_source=generator&theme=0';
+                
+                container.innerHTML = `<iframe class="spotify-embed" src="${finalUrl}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style="background: #000; border-radius: 12px;"></iframe>`;
             } else {
                 container.innerHTML = '<p style="font-size: 0.7rem; color: var(--text-gray); text-align: center;">Nenhuma música compartilhada ainda.</p>';
             }
@@ -686,7 +693,8 @@
 
         function connectSpotify() {
             if (!SPOTIFY_CLIENT_ID) {
-                alert("⚠️ Erro: Client ID do Spotify não configurado no código.");
+                alert("ℹ️ O Spotify está em manutenção para novas integrações. O app continuará usando o player padrão por enquanto.");
+                window.open('https://open.spotify.com/', '_blank');
                 return;
             }
             const url = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}`;
