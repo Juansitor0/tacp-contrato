@@ -573,9 +573,11 @@
                     // https://open.spotify.com/playlist/ID
                     // https://open.spotify.com/album/ID
                     
+                    // ✅ CORREÇÃO: Regex mais robusta para capturar o ID corretamente, ignorando o que vem depois
                     const trackMatch = link.match(/track\/([a-zA-Z0-9]+)/);
                     const playlistMatch = link.match(/playlist\/([a-zA-Z0-9]+)/);
                     const albumMatch = link.match(/album\/([a-zA-Z0-9]+)/);
+                    const artistMatch = link.match(/artist\/([a-zA-Z0-9]+)/);
 
                     if (trackMatch) {
                         embedUrl = `https://open.spotify.com/embed/track/${trackMatch[1]}`;
@@ -586,6 +588,9 @@
                     } else if (albumMatch) {
                         embedUrl = `https://open.spotify.com/embed/album/${albumMatch[1]}`;
                         contentType = "álbum";
+                    } else if (artistMatch) {
+                        embedUrl = `https://open.spotify.com/embed/artist/${artistMatch[1]}`;
+                        contentType = "artista";
                     } else {
                         throw new Error("Tipo de link não suportado ou inválido");
                     }
@@ -857,33 +862,27 @@
         let sec = 0; setInterval(() => { sec++; let h=Math.floor(sec/3600).toString().padStart(2,'0'), m=Math.floor((sec%3600)/60).toString().padStart(2,'0'), s=(sec%60).toString().padStart(2,'0'); document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`; }, 1000);
     
         let swRegistration = null;
-        if ('serviceWorker' in navigator) {
-            // ✅ CORREÇÃO: Verifica se está em ambiente seguro (HTTPS ou localhost)
-            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-                console.warn("⚠️ Notificações Push requerem HTTPS para funcionar corretamente.");
-            }
-
-            navigator.serviceWorker.register('sw.js')
-            .then(reg => {
-                console.log("✅ Service Worker registrado com sucesso!");
-                swRegistration = reg;
-                
-                // Verifica se está ativo
-                if (reg.active) {
-                    console.log("✅ Service Worker está ativo.");
-                } else {
-                    console.log("⏳ Service Worker está instalando...");
-                    // Força ativação se estiver esperando
-                    if (reg.waiting) reg.waiting.postMessage({type: 'SKIP_WAITING'});
+        async function registerSW() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const reg = await navigator.serviceWorker.register('sw.js');
+                    console.log("✅ Service Worker registrado!");
+                    swRegistration = reg;
+                    
+                    // Espera o SW estar pronto
+                    await navigator.serviceWorker.ready;
+                    console.log("✅ Service Worker pronto e ativo.");
+                    
+                    // Se houver um usuário logado, tenta registrar o FCM
+                    if (state.currentUser && Notification.permission === 'granted') {
+                        registrarFCM();
+                    }
+                } catch (err) {
+                    console.error("❌ Erro ao registrar Service Worker:", err);
                 }
-            })
-            .catch(err => {
-                console.error("❌ Erro ao registrar Service Worker:", err);
-                console.warn("⚠️ Notificações push podem não funcionar corretamente.");
-            });
-        } else {
-            console.error("❌ Service Workers não são suportados neste navegador.");
+            }
         }
+        registerSW();
         const messaging = firebase.messaging();
 
         messaging.onMessage((payload) => {
@@ -897,49 +896,32 @@
 
         async function registrarFCM() {
             try {
-                // ✅ CORREÇÃO: Verifica suporte antes de prosseguir
-                if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-                    console.warn('⚠️ Notificações Push não são suportadas neste navegador.');
-                    return;
-                }
-
-                // Verifica se as notificações estão permitidas
-                if (Notification.permission !== 'granted') {
-                    console.warn('⚠️ Permissão de notificação não concedida. FCM não será registrado.');
-                    return;
-                }
+                if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+                if (Notification.permission !== 'granted') return;
                 
-                // Tenta obter o registro do service worker se ainda não tiver
-                if (!swRegistration) {
-                    swRegistration = await navigator.serviceWorker.ready;
-                    console.log('✅ Service Worker pronto para FCM.');
-                }
-
-                // ✅ CORREÇÃO: Garante que o pushManager existe no registro
-                if (!swRegistration.pushManager) {
-                    console.error('❌ pushManager não encontrado no Service Worker. Verifique se está em HTTPS.');
-                    return;
+                // ✅ CORREÇÃO: Espera o SW estar totalmente pronto e ATIVO
+                const reg = await navigator.serviceWorker.ready;
+                
+                // Pequeno delay para garantir que o PushManager está disponível
+                if (!reg.active) {
+                    console.log("⏳ Aguardando ativação do Service Worker...");
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
 
                 const token = await messaging.getToken({
-                    serviceWorkerRegistration: swRegistration,
+                    serviceWorkerRegistration: reg,
                     vapidKey: "BBkKvm1cWf-3jw9govGz9Iud--j8Ct5BGbTCfF3Jtx-YrYjTs-jIAC6LgOgVRKlweLuzI9GvBFFVBVLRp0LItVQ"
                 });
 
                 if (token) {
-                    console.log("✅ FCM Token obtido com sucesso!");
-                    console.log("🔥 Token:", token);
+                    console.log("✅ FCM Token:", token);
                     await firebase.database().ref('fcm_tokens/' + state.currentUser).set(token);
-                    console.log("✅ Token FCM salvo no Firebase.");
-                } else {
-                    console.warn("⚠️ Não foi possível obter o token FCM.");
                 }
             } catch (err) {
                 console.error("❌ Erro ao registrar FCM:", err);
-                if (err.code === 'messaging/permission-blocked') {
-                    console.error('❌ Notificações bloqueadas pelo usuário.');
-                } else if (err.code === 'messaging/token-subscribe-failed') {
-                    console.error('❌ Falha ao se inscrever para notificações push.');
+                // Tenta novamente em 5 segundos se for erro de ativação
+                if (err.message.includes('no active Service Worker')) {
+                    setTimeout(registrarFCM, 5000);
                 }
             }
         }

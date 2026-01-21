@@ -1,6 +1,15 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
+// ✅ CORREÇÃO: Força o Service Worker a se tornar ativo imediatamente
+self.addEventListener('install', event => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(clients.claim());
+});
+
 firebase.initializeApp({
     apiKey: "AIzaSyDeXp1gHm2cyd0MPRbyj7NMm0HlnlI9tCE",
     authDomain: "contrato-online.firebaseapp.com",
