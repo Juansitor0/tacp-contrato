@@ -669,7 +669,12 @@
             ];
             
             let randomId;
-            const currentId = state.currentMusic ? state.currentMusic.split('/').pop() : null;
+            // ✅ CORREÇÃO: Extrai o ID corretamente mesmo se houver parâmetros na URL
+            let currentId = null;
+            if (state.currentMusic) {
+                const parts = state.currentMusic.split('?')[0].split('/');
+                currentId = parts[parts.length - 1];
+            }
             
             do {
                 randomId = playlistIds[Math.floor(Math.random() * playlistIds.length)];
