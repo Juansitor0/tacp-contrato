@@ -15,6 +15,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <style>
         :root {
             --bg-color: #0a0b10;
@@ -148,7 +149,7 @@
                         <button class="btn-music" onclick="shareMusic()">ENVIAR</button>
                     </div>
                     <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-                        <button class="btn-music" onclick="openSpotify()" style="flex: 1; min-width: 100px; font-size: 0.7rem; padding: 6px;">🎶 ABRIR SPOTIFY</button>
+                        <button id="btn-spotify-connect" class="btn-music" onclick="connectSpotify()" style="flex: 1; min-width: 100px; font-size: 0.7rem; padding: 6px; border-color: #1DB954; color: #1DB954;">🟢 CONECTAR SPOTIFY</button>
                         <button class="btn-music" onclick="playRandomMusic()" style="flex: 1; min-width: 100px; font-size: 0.7rem; padding: 6px; border-color: var(--neon-blue); color: var(--neon-blue);">🎲 ALEATÓRIO</button>
                         <button class="btn-music" onclick="clearMusic()" style="flex: 1; min-width: 100px; font-size: 0.7rem; padding: 6px; border-color: var(--alert-red); color: var(--alert-red);">❌ LIMPAR</button>
                     </div>
@@ -225,6 +226,20 @@
         const auth = firebase.auth();
         const db = firebase.database();
         const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+        // Configurações Spotify (O usuário precisará preencher o Client ID)
+        const SPOTIFY_CLIENT_ID = ''; // PREENCHER NO DASHBOARD DO SPOTIFY
+        const REDIRECT_URI = window.location.origin + window.location.pathname;
+        const SCOPES = [
+            'streaming',
+            'user-read-email',
+            'user-read-private',
+            'user-modify-playback-state',
+            'user-read-playback-state'
+        ].join(' ');
+
+        let spotifyPlayer = null;
+        let spotifyToken = localStorage.getItem('spotify_token');
 
         const defaultClauses = {
             1: { title: "CLÁUSULA 1 – DA DISPONIBILIDADE", content: "Fica estabelecido que o Contratante continuará exercendo suas funções de quebra-galho oficial, incluindo idas emergenciais à farmácia e suporte 24/7 aos domingos." },
@@ -632,16 +647,20 @@
         }
 
         let lastMusicUrl = "";
-        function updateMusicPlayer(url) {
+        async function updateMusicPlayer(url) {
             const container = document.getElementById('spotify-player-container');
             if (!container) return;
             
-            // ✅ CORREÇÃO: Evita recarregar o iframe se a URL for a mesma
             if (url === lastMusicUrl) return;
             lastMusicUrl = url;
 
             if (url) {
-                // Adicionamos um timestamp para forçar o recarregamento se necessário e garantir a origem
+                // Se o player nativo estiver conectado, tentamos tocar por ele
+                if (spotifyPlayer && url.includes('track/')) {
+                    const trackId = url.split('track/')[1].split('?')[0];
+                    playSpotifyTrack(trackId);
+                }
+                
                 const finalUrl = url.includes('?') ? `${url}&utm_source=tacp_app` : `${url}?utm_source=tacp_app`;
                 container.innerHTML = `<iframe class="spotify-embed" src="${finalUrl}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style="background: #000;"></iframe>`;
             } else {
@@ -649,9 +668,73 @@
             }
         }
 
-        function openSpotify() {
-            window.open('https://open.spotify.com/', '_blank');
+        async function playSpotifyTrack(trackId) {
+            if (!spotifyToken) return;
+            try {
+                await fetch(`https://api.spotify.com/v1/me/player/play`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ uris: [`spotify:track:${trackId}`] }),
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${spotifyToken}`
+                    },
+                });
+            } catch (e) {
+                console.error("Erro ao tocar música via API:", e);
+            }
         }
+
+        function connectSpotify() {
+            if (!SPOTIFY_CLIENT_ID) {
+                alert("⚠️ Erro: Client ID do Spotify não configurado no código.");
+                return;
+            }
+            const url = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}`;
+            window.location.href = url;
+        }
+
+        // Captura o token da URL após o redirecionamento
+        function checkSpotifyAuth() {
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash);
+            const token = params.get('access_token');
+            if (token) {
+                spotifyToken = token;
+                localStorage.setItem('spotify_token', token);
+                window.location.hash = '';
+                initSpotifyPlayer();
+            } else if (spotifyToken) {
+                initSpotifyPlayer();
+            }
+        }
+
+        window.onSpotifyWebPlaybackSDKReady = () => {
+            if (spotifyToken) initSpotifyPlayer();
+        };
+
+        function initSpotifyPlayer() {
+            if (!spotifyToken || spotifyPlayer) return;
+
+            spotifyPlayer = new Spotify.Player({
+                name: 'TACP Smart Player',
+                getOAuthToken: cb => { cb(spotifyToken); },
+                volume: 0.5
+            });
+
+            spotifyPlayer.addListener('ready', ({ device_id }) => {
+                console.log('✅ Spotify Player pronto com ID:', device_id);
+                document.getElementById('btn-spotify-connect').innerText = "🟢 SPOTIFY CONECTADO";
+                document.getElementById('btn-spotify-connect').style.borderColor = "var(--matrix-green)";
+            });
+
+            spotifyPlayer.addListener('not_ready', ({ device_id }) => {
+                console.log('Device ID has gone offline', device_id);
+            });
+
+            spotifyPlayer.connect();
+        }
+
+        checkSpotifyAuth();
 
         function playRandomMusic() {
             // ✅ CORREÇÃO: IDs atualizados e formato garantido
