@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TACP v3.0">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1182/1182761.png">
+    <title>TACP v3.0 | Notificações Ativas</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1182/1182761.png">
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0a0b10;
+            --card-bg: #161b22;
+            --neon-blue: #00d2ff;
+            --matrix-green: #00ff41;
+            --alert-red: #ff3131;
+            --text-gray: #8b949e;
+            --text-white: #c9d1d9;
+            --warning-yellow: #ffcc00;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-white);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0; padding: 0;
+            display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh; overflow-x: hidden;
+        }
+        #login-screen {
+            width: 90%; max-width: 400px; background: var(--card-bg); border: 1px solid var(--neon-blue);
+            padding: 30px; border-radius: 8px; box-shadow: 0 0 30px rgba(0, 210, 255, 0.2); text-align: center; margin-top: 50px;
+        }
+        .btn-google {
+            width: 100%; padding: 15px; background: white; border: none;
+            color: #444; cursor: pointer; font-weight: bold; font-size: 1rem;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            border-radius: 4px; transition: 0.3s;
+        }
+        .btn-google:hover { background: #f1f1f1; }
+        .btn-google img { width: 20px; }
+        #dashboard {
+            display: none; width: 100%; max-width: 850px; background: var(--card-bg); border: 1px solid var(--neon-blue);
+            padding: 15px; flex-direction: column; gap: 15px; min-height: 100vh;
+        }
+        @media (min-width: 768px) { #dashboard { margin: 20px auto; border-radius: 8px; min-height: auto; padding: 25px; width: 95%; } }
+        header { border-bottom: 2px solid var(--neon-blue); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; contain: layout; }
+        h1 { color: var(--neon-blue); font-size: 1.3rem; margin: 0; text-transform: uppercase; }
+        .system-status { font-size: 0.7rem; text-align: right; flex-grow: 1; line-height: 1.4; }
+        .user-info-bar { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; font-size: 0.75rem; border: 1px solid #30363d; }
+        .main-grid { display: grid; grid-template-columns: 1fr; gap: 15px; will-change: transform; }
+        @media (min-width: 768px) { .main-grid { grid-template-columns: 1.2fr 0.8fr; } }
+        
+        /* Music Section Styles */
+        .music-section { background: rgba(0, 0, 0, 0.3); border: 1px solid #30363d; border-radius: 4px; padding: 15px; margin-top: 15px; }
+        .music-header { color: var(--neon-blue); font-size: 0.9rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .music-input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .music-input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid #30363d; padding: 10px; color: white; border-radius: 4px; font-family: inherit; font-size: 0.8rem; }
+        .btn-music { background: transparent; border: 1px solid var(--matrix-green); color: var(--matrix-green); padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 0.8rem; }
+        .spotify-embed { width: 100%; border-radius: 12px; border: none; height: 152px; }
+        .minecraft-font { font-family: 'Courier New', Courier, monospace; font-weight: bold; letter-spacing: 1px; }
+        .metric-card-graph { background: rgba(0, 0, 0, 0.3); border: 1px solid #30363d; padding: 10px; border-radius: 4px; display: flex; flex-direction: column; align-items: center; width: 100%; }
+        .chart-container { position: relative; height: 280px; width: 100%; max-width: 400px; }
+        .expandable-section { background: rgba(0, 0, 0, 0.3); border: 1px solid #30363d; border-radius: 4px; overflow: hidden; }
+        .expandable-header { padding: 12px; background: rgba(0, 0, 0, 0.5); cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; }
+        .expandable-content { max-height: 0; overflow: hidden; transition: 0.3s; }
+        .expandable-section.expanded .expandable-content { max-height: 600px; padding: 15px; }
+        .status-control { margin-bottom: 15px; }
+        .status-label-row { display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 8px; color: var(--text-gray); }
+        .status-slider { width: 100%; height: 25px; accent-color: var(--neon-blue); cursor: pointer; }
+        .clauses { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; width: 100%; }
+        .clause-item { background: rgba(255, 255, 255, 0.03); border-left: 4px solid var(--neon-blue); padding: 15px; display: flex; align-items: flex-start; cursor: pointer; border-radius: 0 4px 4px 0; }
+        .clause-item.pending-edit { border-left-color: var(--warning-yellow); }
+        .clause-checkbox { margin-right: 12px; width: 24px; height: 24px; accent-color: var(--matrix-green); flex-shrink: 0; }
+        .clause-content h3 { margin: 0 0 5px 0; font-size: 0.9rem; color: var(--neon-blue); }
+        .clause-content p { margin: 0; font-size: 0.85rem; color: var(--text-gray); line-height: 1.4; }
+        #btn-deploy { width: 100%; padding: 18px; border: 2px solid var(--neon-blue); background: transparent; color: var(--neon-blue); font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        #btn-deploy:disabled { border-color: #333; color: #333; cursor: not-allowed; }
+        #chat-widget { position: fixed; bottom: 15px; right: 15px; z-index: 2000; display: none; flex-direction: column; align-items: flex-end; }
+        #chat-button { width: 55px; height: 55px; border-radius: 50%; background: var(--neon-blue); border: none; cursor: pointer; box-shadow: 0 0 15px var(--neon-blue); display: flex; justify-content: center; align-items: center; font-size: 1.6rem; color: black; }
+        #chat-window { width: 280px; height: 380px; background: var(--card-bg); border: 1px solid var(--neon-blue); border-radius: 8px; margin-bottom: 10px; display: none; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.5); overflow: hidden; }
+        .chat-header { padding: 10px; background: rgba(0,0,0,0.5); border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+        .dot-online { background: var(--matrix-green); box-shadow: 0 0 5px var(--matrix-green); }
+        .dot-offline { background: #555; }
+        #chat-messages { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 0.8rem; }
+        .msg { padding: 8px 12px; border-radius: 4px; max-width: 85%; line-height: 1.4; word-wrap: break-word; }
+        .msg-me { align-self: flex-end; background: rgba(0, 210, 255, 0.1); border: 1px solid var(--neon-blue); }
+        .msg-them { align-self: flex-start; background: rgba(255, 255, 255, 0.05); border: 1px solid #30363d; }
+        .chat-input-area { display: flex; border-top: 1px solid #30363d; padding: 5px; }
+        #chat-input { flex: 1; background: transparent; border: none; color: white; padding: 8px; font-family: inherit; font-size: 1rem; }
+        #chat-input:focus { outline: none; }
+        .btn-send { background: transparent; border: none; color: var(--matrix-green); cursor: pointer; font-weight: bold; padding: 0 10px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 15px; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--neon-blue); width: 100%; max-width: 500px; border-radius: 8px; padding: 20px; max-height: 85vh; overflow-y: auto; }
+        textarea { width: 100%; height: 120px; background: #000; color: white; border: 1px solid var(--neon-blue); padding: 10px; margin-top: 10px; font-family: inherit; font-size: 1rem; }
+        #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4000; }
+    </style>
+</head>
+<body>
+    <canvas id="confetti"></canvas>
+    <div id="login-screen">
+        <h2 style="color: var(--neon-blue); letter-spacing: 2px;">TACP ACCESS</h2>
+        <p style="font-size: 0.8rem; color: var(--text-gray); margin-bottom: 25px;">Acesso restrito aos contratantes oficiais.</p>
+        <button class="btn-google" onclick="loginWithGoogle()">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+            ENTRAR COM GOOGLE
+        </button>
+        <p id="login-error" style="color: var(--alert-red); font-size: 0.75rem; margin-top: 15px; display: none;"></p>
+    </div>
+
+    <div id="dashboard">
+        <header>
+            <div>
+                <h1>Contrato 2026</h1>
+                <div style="font-size: 0.6rem; color: var(--text-gray);">STATUS: ENCRYPTED | REAL-TIME</div>
+            </div>
+            <div class="system-status">
+                <div>DISTÂNCIA: <span id="distancia-val" style="color: var(--matrix-green);">---</span></div>
+                <div>UPTIME: <span id="uptime-val">00:00:00</span></div>
+            </div>
+        </header>
+        <div class="user-info-bar">
+            <span>SESSÃO: <span id="display-user" style="color: var(--neon-blue); font-weight: bold;">---</span></span>
+            <button onclick="handleLogout()" style="background:none; border:1px solid var(--alert-red); color:var(--alert-red); font-size:0.7rem; cursor:pointer; padding:4px 8px; border-radius:3px;">LOGOUT</button>
+        </div>
+        <div class="main-grid">
+            <div class="metric-card-graph">
+                <span style="font-size: 0.65rem; color: var(--text-gray); text-transform: uppercase; margin-bottom: 5px;">Biometria Emocional</span>
+                <div class="chart-container"><canvas id="radarChart"></canvas></div>
+                
+                <!-- Music Section -->
+                <div class="music-section" style="width: 100%; margin-top: 20px;">
+                    <div class="music-header">
+                        <span style="font-size: 1.2rem;">🎵</span> <span class="minecraft-font">SINTONIZADOS</span>
+                        <span style="margin-left: auto; font-size: 0.8rem; opacity: 0.5;">⛏️</span>
+                    </div>
+                    <div class="music-input-group">
+                        <input type="text" id="spotify-link" class="music-input" placeholder="Cole o link do Spotify aqui..." onkeypress="if(event.key==='Enter') shareMusic()">
+                        <button class="btn-music" onclick="shareMusic()">ENVIAR</button>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                        <button class="btn-music" onclick="openSpotify()" style="flex: 1; min-width: 100px; font-size: 0.7rem; padding: 6px;">🎶 ABRIR SPOTIFY</button>
+                        <button class="btn-music" onclick="playRandomMusic()" style="flex: 1; min-width: 100px; font-size: 0.7rem; padding: 6px; border-color: var(--neon-blue); color: var(--neon-blue);">🎲 ALEATÓRIO</button>
+                        <button class="btn-music" onclick="clearMusic()" style="flex: 1; min-width: 100px; font-size: 0.7rem; padding: 6px; border-color: var(--alert-red); color: var(--alert-red);">❌ LIMPAR</button>
+                    </div>
+                    <div id="spotify-player-container">
+                        <p style="font-size: 0.7rem; color: var(--text-gray); text-align: center;">Nenhuma música compartilhada ainda.</p>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="expandable-section expanded" id="expandable-controls">
+                    <div class="expandable-header"><span>MEUS STATUS</span><span>▼</span></div>
+                    <div class="expandable-content">
+                        <div class="status-control"><div class="status-label-row"><span>FOME </span><span id="val-0">50%</span></div><input type="range" class="status-slider" data-index="0" min="0" max="100"></div>
+                        <div class="status-control"><div class="status-label-row"><span>PACIÊNCIA </span><span id="val-1">50%</span></div><input type="range" class="status-slider" data-index="1" min="0" max="100"></div>
+                        <div class="status-control"><div class="status-label-row"><span>TRISTEZA </span><span id="val-2">50%</span></div><input type="range" class="status-slider" data-index="2" min="0" max="100"></div>
+                        <div class="status-control"><div class="status-label-row"><span>FELICIDADE </span><span id="val-3">50%</span></div><input type="range" class="status-slider" data-index="3" min="0" max="100"></div>
+                            </div>
+                </div>
+                <div class="expandable-section" id="expandable-notif" style="margin-top:10px;">
+                    <div class="expandable-header"><span>NOTIFICAÇÕES</span><span>▼</span></div>
+                    <div class="expandable-content">
+                        <div style="display:flex; flex-direction:column; gap:12px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span>Vibração</span><input type="checkbox" id="notif-vibrate" checked></div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span>Piscar Aba</span><input type="checkbox" id="notif-blink" checked></div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span>Push (Browser)</span><button onclick="requestNotifPermission()" style="font-size:0.6rem; padding:2px 5px;">ATIVAR</button></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="clauses" id="clauses-container"></div>
+        <button id="btn-deploy" disabled>ASSINAR CONTRATO</button>
+        <div style="height: 40px;"></div>
+    </div>
+
+    <div id="chat-widget">
+        <div id="chat-window">
+            <div class="chat-header">
+                <div style="display:flex; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:4px;"><span id="dot-juan" class="dot dot-offline"></span> JUAN</div>
+                    <div style="display:flex; align-items:center; gap:4px;"><span id="dot-mici" class="dot dot-offline"></span> MICI</div>
+                </div>
+                <span style="cursor:pointer; font-weight:bold; padding:5px;" onclick="toggleChat()">X</span>
+            </div>
+            <div id="chat-messages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Mensagem..." onkeypress="if(event.key==='Enter') sendMessage()">
+                <button class="btn-send" onclick="sendMessage()">></button>
+            </div>
+        </div>
+        <button id="chat-button" onclick="toggleChat()">💬</button>
+    </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <h3 id="modal-title" style="color: var(--neon-blue); margin-top: 0; font-size: 1.1rem;"></h3>
+            <div id="modal-body" style="font-size: 0.9rem; line-height: 1.5;"></div>
+            <div id="modal-action-area"></div>
+            <button onclick="closeModal()" style="width:100%; margin-top:20px; background:none; border:1px solid #555; color:#555; padding:12px; cursor:pointer; border-radius:4px;">FECHAR</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDeXp1gHm2cyd0MPRbyj7NMm0HlnlI9tCE",
+            authDomain: "contrato-online.firebaseapp.com",
+            databaseURL: "https://contrato-online-default-rtdb.firebaseio.com",
+            projectId: "contrato-online",
+            storageBucket: "contrato-online.firebasestorage.app",
+            messagingSenderId: "707541071284",
+            appId: "1:707541071284:web:6bc61a769477e24feeaee1"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        const defaultClauses = {
+            1: { title: "CLÁUSULA 1 – DA DISPONIBILIDADE", content: "Fica estabelecido que o Contratante continuará exercendo suas funções de quebra-galho oficial, incluindo idas emergenciais à farmácia e suporte 24/7 aos domingos." },
+            2: { title: "CLÁUSULA 2 – DA CLÁUSULA ANTI-RESCISÃO", content: "A Contratada optou pela opção 'Você por completa'. Fica proibida qualquer tentativa de rescisão. Contrato irrevogável e sem direito a rollback." },
+            3: { title: "CLÁUSULA 3 – DOS HONORÁRIOS", content: "Compensação através de suporte de paciência, 01 final de semana por mês para dormir na residência do Contratante e alimentação de contingência." },
+            4: { title: "CLÁUSULA 4 – DAS PENALIDADES", content: "Violação do Zero Segundas Intenções: Massagem Completa (30 min). Abandono do Fazer Nada: Multa de 01 lanche." },
+            5: { title: "CLÁUSULA 5 – DISPOSIÇÕES GERAIS", content: "O acordo sério será discutido em reunião oficial. A Contratada fica impedida de apresentar desistência." }
+        };
+
+        let state = { currentUser: null, clauses: JSON.parse(JSON.stringify(defaultClauses)), pendingEdits: {}, checkboxes: {}, biometria: { juan: [50,50,50,50], mici: [50,50,50,50] }, locations: { juan: {lat:0, lon:0}, mici: {lat:0, lon:0} }, currentMusic: null };
+        let chart;
+        let blinkInterval = null;
+        let isFirstLoad = true;
+        let avisouProximidade = false;
+        let alertaBiometriaAtivo = false;
+        let syncingFromFirebase = false;
+
+        const sessionStartTime = Date.now();
+
+       
+
+        async function loginWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try {
+                await auth.signInWithPopup(provider);
+            } catch (e) {
+                console.error("Erro no login:", e);
+                document.getElementById('login-error').innerText = "Erro ao entrar com Google. Tente novamente.";
+                document.getElementById('login-error').style.display = 'block';
+            }
+        }
+
+        async function handleLogout() {
+            if (state.currentUser) {
+                await db.ref(`presence/${state.currentUser}`).set('offline');
+            }
+            auth.signOut().then(() => window.location.reload());
+        }
+
+        function requestNotifPermission() {
+            if ("Notification" in window) {
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === "granted") {
+                            alert("✅ Notificações ativadas com sucesso!");
+                            // Testar notificação
+                            triggerNotification('🔔 TACP Ativo', 'Você receberá notificações de atualizações importantes.');
+                        } else if (permission === "denied") {
+                            alert("⚠️ Notificações bloqueadas. Para ativar, acesse as configurações do navegador.");
+                        }
+                    });
+                } else if (Notification.permission === 'granted') {
+                    alert("✅ Notificações já estão ativas!");
+                } else {
+                    alert("⚠️ Notificações bloqueadas. Acesse as configurações do navegador para permitir.");
+                }
+            } else {
+                alert("❌ Seu navegador não suporta notificações.");
+            }
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // Mapeamento de e-mails para identificar Juan e Mici
+                const email = user.email.toLowerCase();
+                if (email.includes('juan') || email.includes('juansitor')) {
+                    state.currentUser = 'juan';
+                } else if (email.includes('mici') || email.includes('michelle')) {
+                    state.currentUser = 'mici';
+                } else {
+                    // Fallback para o primeiro nome do e-mail se não for um dos dois
+                    state.currentUser = email.split('@')[0].split('.')[0];
+                }
+
+                document.getElementById('display-user').innerText = state.currentUser.toUpperCase();
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'flex';
+                document.getElementById('chat-widget').style.display = 'flex';
+                initSystem();
+                
+                // Registra o FCM após garantir que o usuário está logado
+                if (Notification.permission === 'granted') {
+                    registrarFCM();
+                }
+            } else {
+                document.getElementById('login-screen').style.display = 'block';
+                document.getElementById('dashboard').style.display = 'none';
+                document.getElementById('chat-widget').style.display = 'none';
+            }
+        });
+
+        function initSystem() {
+            const presenceRef = db.ref(`.info/connected`);
+            presenceRef.on('value', snap => {
+                if (snap.val() === true) {
+                    const con = db.ref(`presence/${state.currentUser}`);
+                    con.onDisconnect().set('offline');
+                    con.set('online');
+                }
+            });
+            db.ref('presence').on('value', snap => {
+                const p = snap.val() || {};
+                document.getElementById('dot-juan').className = `dot ${p.juan === 'online' ? 'dot-online' : 'dot-offline'}`;
+                document.getElementById('dot-mici').className = `dot ${p.mici === 'online' ? 'dot-online' : 'dot-offline'}`;
+            });
+
+            db.ref('tacp_contract').on('value', snap => {
+                if (!snap.exists()) return;
+
+                syncingFromFirebase = true;
+
+                const data = snap.val();
+
+                state.clauses = data.clauses || state.clauses;
+                state.pendingEdits = data.pendingEdits || {};
+                state.checkboxes = data.checkboxes || {};
+                state.locations = data.locations || state.locations;
+
+                const safeBiometria = data.biometria || {};
+
+                state.biometria = {
+                    juan: Array.isArray(safeBiometria.juan)
+                        ? safeBiometria.juan
+                        : [50, 50, 50, 50],
+
+                    mici: Array.isArray(safeBiometria.mici)
+                        ? safeBiometria.mici
+                        : [50, 50, 50, 50]
+                };
+
+
+
+                state.currentMusic = data.currentMusic || state.currentMusic;
+
+               // 🔔 ALERTAS (Juan monitora Mici)
+                if (state.currentUser === 'juan') {
+                    const bio = state.biometria.mici;
+                    const labels = ['Fome', 'Paciência', 'Tristeza', 'Felicidade'];
+                    let nivelCriticoGlobal = false;
+
+                    bio.forEach((val, i) => {
+                        const isCritical =
+                            (labels[i] === 'Paciência' || labels[i] === 'Felicidade')
+                            ? val < 20
+                            : val > 80;
+
+                        if (isCritical) nivelCriticoGlobal = true;
+                    });
+
+                    // 🎯 EFEITO VISUAL
+                    document.getElementById('radarChart').style.boxShadow =
+                        nivelCriticoGlobal ? '0 0 25px var(--alert-red)' : 'none';
+
+
+                    // 🔔 NOTIFICAÇÃO (ADICIONAR AQUI 👇)
+                    if (nivelCriticoGlobal && !alertaBiometriaAtivo) {
+                        triggerNotification(
+                            '⚠️ BIOMETRIA CRÍTICA',
+                            'Níveis emocionais da Mici estão fora do padrão.'
+                        );
+                        alertaBiometriaAtivo = true;
+                    }
+
+                    if (!nivelCriticoGlobal) {
+                        alertaBiometriaAtivo = false;
+                    }
+                }
+
+                renderClauses();
+                syncSliders();
+                updateChart(true);
+                updateDeployButton();
+                updateMusicPlayer(state.currentMusic);
+                atualizarDistancia();
+
+                syncingFromFirebase = false;
+                isFirstLoad = false;
+            });
+
+
+                    
+
+                   
+
+            db.ref('chat').on('child_added', snap => {
+                const m = snap.val();
+                const container = document.getElementById('chat-messages');
+                const div = document.createElement('div');
+                div.className = `msg ${m.user === state.currentUser ? 'msg-me' : 'msg-them'}`;
+                div.innerHTML = `<span style="font-size:0.6rem; font-weight:bold; display:block; color:var(--neon-blue);">${m.user.toUpperCase()}</span>${m.text}`;
+                container.appendChild(div);
+                container.scrollTop = container.scrollHeight;
+                
+                if (m.time > sessionStartTime && m.user !== state.currentUser) {
+                    triggerNotification(`💬 ${m.user.toUpperCase()}`, m.text);
+                }
+            });
+
+            initRadar(); 
+            updateChart(true);
+            iniciarGPS();
+        }
+
+        function triggerNotification(title, body) {
+             // Piscar aba
+            if (document.getElementById('notif-blink')?.checked) {
+                if (blinkInterval) clearInterval(blinkInterval);
+                const originalTitle = document.title;
+                let isAlert = false;
+
+                blinkInterval = setInterval(() => {
+                    document.title = isAlert ? `⚠️ ${title}` : originalTitle;
+                    isAlert = !isAlert;
+                }, 1000);
+
+                setTimeout(() => {
+                    clearInterval(blinkInterval);
+                    document.title = originalTitle;
+                }, 10000);
+            }
+
+            // Vibração
+            if (document.getElementById('notif-vibrate')?.checked && navigator.vibrate) {
+                try {
+                    // ✅ CORREÇÃO: Evita erro se o usuário ainda não interagiu com a página
+                    navigator.vibrate([200, 100, 200]);
+                } catch (e) {
+                    console.warn('⚠️ Vibração bloqueada: aguardando interação do usuário.');
+                }
+            }
+
+            // ✅ CORREÇÃO: Criar notificação nativa do sistema
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try {
+                    const notification = new Notification(title, {
+                        body: body,
+                        icon: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
+                        badge: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
+                        tag: 'tacp-local-notification',
+                        requireInteraction: false,
+                        vibrate: [200, 100, 200]
+                    });
+                    
+                    // Focar na janela quando clicar na notificação
+                    notification.onclick = function() {
+                        window.focus();
+                        notification.close();
+                    };
+                    
+                    // Fechar automaticamente após 10 segundos
+                    setTimeout(() => notification.close(), 10000);
+                } catch (e) {
+                    console.error('❌ Erro ao criar notificação:', e);
+                    // Fallback para alert se as notificações falharem e for importante
+                    if (title.includes('CRÍTICA')) alert(`${title}\n${body}`);
+                }
+            } else if ('Notification' in window && Notification.permission === 'default') {
+                // Se ainda não pediu permissão, tenta pedir agora (fallback)
+                Notification.requestPermission();
+            }
+        }
+        function syncSliders() {
+            state.biometria[state.currentUser].forEach((val, i) => {
+                const slider = document.querySelector(`.status-slider[data-index="${i}"]`);
+                if(slider) slider.value = val;
+                const label = document.getElementById(`val-${i}`);
+                if(label) label.innerText = val + "%";
+            });
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            if (input.value.trim()) {
+                db.ref('chat').push({ user: state.currentUser, text: input.value, time: Date.now() });
+                input.value = '';
+            }
+        }
+
+        function toggleChat() {
+            const win = document.getElementById('chat-window');
+            win.style.display = win.style.display === 'flex' ? 'none' : 'flex';
+            if (win.style.display === 'flex') {
+                const container = document.getElementById('chat-messages');
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        function renderClauses() {
+            const container = document.getElementById('clauses-container');
+            container.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const c = state.clauses[i] || defaultClauses[i];
+                const hasEdit = state.pendingEdits[i];
+                const div = document.createElement('div');
+                div.className = `clause-item ${hasEdit ? 'pending-edit' : ''}`;
+                div.innerHTML = `
+                    <input type="checkbox" class="clause-checkbox" ${state.checkboxes[i] ? 'checked' : ''} onclick="event.stopPropagation(); toggleCheck(${i}, this.checked)">
+                    <div class="clause-content" onclick="openModal(${i})">
+                        <h3>${c.title} ${hasEdit ? '<span style="background:var(--warning-yellow); color:#000; font-size:0.6rem; padding:2px 5px; border-radius:3px; margin-left:5px; font-weight:bold;">PENDENTE</span>' : ''}</h3>
+                        <p>${c.content.substring(0, 80)}...</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        window.toggleCheck = (i, checked) => { state.checkboxes[i] = checked; save(); };
+        let saveTimeout;
+
+        function save() {
+            if (syncingFromFirebase) return;
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                db.ref('tacp_contract').update({
+                    biometria: state.biometria,
+                    clauses: state.clauses,
+                    pendingEdits: state.pendingEdits,
+                    checkboxes: state.checkboxes,
+                    locations: state.locations,
+                    currentMusic: state.currentMusic
+                });
+            }, 400);
+}
+
+        
+        function shareMusic() {
+            const linkInput = document.getElementById('spotify-link');
+            let link = linkInput.value.trim();
+            
+            if (!link) {
+                alert('⚠️ Por favor, cole um link do Spotify primeiro.');
+                return;
+            }
+            
+            if (link.includes('spotify.com')) {
+                let embedUrl = "";
+                let contentType = "conteúdo";
+                
+                try {
+                    // Remove parâmetros de busca para limpar o link
+                    const cleanLink = link.split('?')[0];
+                    
+                    // Suporta links como:
+                    // https://open.spotify.com/track/ID
+                    // https://open.spotify.com/intl-pt/track/ID
+                    // https://open.spotify.com/playlist/ID
+                    // https://open.spotify.com/album/ID
+                    
+                    // ✅ CORREÇÃO: Regex mais robusta para capturar o ID corretamente, ignorando o que vem depois
+                    const trackMatch = link.match(/track\/([a-zA-Z0-9]+)/);
+                    const playlistMatch = link.match(/playlist\/([a-zA-Z0-9]+)/);
+                    const albumMatch = link.match(/album\/([a-zA-Z0-9]+)/);
+                    const artistMatch = link.match(/artist\/([a-zA-Z0-9]+)/);
+
+                    if (trackMatch) {
+                        embedUrl = `https://open.spotify.com/embed/track/${trackMatch[1]}`;
+                        contentType = "música";
+                    } else if (playlistMatch) {
+                        embedUrl = `https://open.spotify.com/embed/playlist/${playlistMatch[1]}`;
+                        contentType = "playlist";
+                    } else if (albumMatch) {
+                        embedUrl = `https://open.spotify.com/embed/album/${albumMatch[1]}`;
+                        contentType = "álbum";
+                    } else if (artistMatch) {
+                        embedUrl = `https://open.spotify.com/embed/artist/${artistMatch[1]}`;
+                        contentType = "artista";
+                    } else {
+                        throw new Error("Tipo de link não suportado ou inválido");
+                    }
+
+                    state.currentMusic = embedUrl;
+                    save();
+                    linkInput.value = '';
+                    
+                    // Feedback visual
+                    linkInput.style.borderColor = 'var(--matrix-green)';
+                    setTimeout(() => { linkInput.style.borderColor = '#30363d'; }, 1000);
+                    
+                    db.ref('chat').push({ 
+                        user: 'system', 
+                        text: `🎵 ${state.currentUser.toUpperCase()} compartilhou uma nova ${contentType}!`, 
+                        time: Date.now() 
+                    });
+                    
+                    // Notificação de sucesso
+                    triggerNotification('🎶 Música Compartilhada', `Você compartilhou uma ${contentType} do Spotify!`);
+                    
+                } catch (e) {
+                    linkInput.style.borderColor = 'var(--alert-red)';
+                    setTimeout(() => { linkInput.style.borderColor = '#30363d'; }, 2000);
+                    alert('❌ Erro ao processar o link. Certifique-se de que é um link válido do Spotify (música, playlist ou álbum).');
+                }
+            } else {
+                linkInput.style.borderColor = 'var(--alert-red)';
+                setTimeout(() => { linkInput.style.borderColor = '#30363d'; }, 2000);
+                alert('❌ Por favor, insira um link válido do Spotify (deve conter "spotify.com").');
+            }
+        }
+
+        let lastMusicUrl = "";
+        function updateMusicPlayer(url) {
+            const container = document.getElementById('spotify-player-container');
+            if (!container) return;
+            
+            if (url === lastMusicUrl) return;
+            lastMusicUrl = url;
+
+            if (url) {
+                // ✅ CORREÇÃO: Adicionado sandbox e parâmetros de origem para evitar 404 no PWA
+                const origin = window.location.origin;
+                const finalUrl = url.includes('?') ? `${url}&utm_source=generator&origin=${origin}` : `${url}?utm_source=generator&origin=${origin}`;
+                
+                container.innerHTML = `<iframe 
+                    class="spotify-embed" 
+                    src="${finalUrl}" 
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                    sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
+                    loading="lazy"></iframe>`;
+            } else {
+                container.innerHTML = '<p style="font-size: 0.7rem; color: var(--text-gray); text-align: center;">Nenhuma música compartilhada ainda.</p>';
+            }
+        }
+
+        function openSpotify() {
+            window.open('https://open.spotify.com/', '_blank');
+        }
+
+        function playRandomMusic() {
+            // ✅ CORREÇÃO: IDs atualizados e formato garantido
+            const playlistIds = [
+                '4u7EnebtmSjSgoH0G2o3mC', // Never Gonna Give You Up
+                '7qiZfU4BZZPmUAFJj68nu3', // Shape of You
+                '0VjIjS4nGhc3A7uI68URbA', // Blinding Lights
+                '27SdWb2rFzO6GWiYDBpt0D', // Flowers
+                '59NraMJsLaMCVbz1BebT2y', // As It Was
+                '6X0V1u1BJu7cZub7J6vUrW', // Cruel Summer
+                '1BxfuS2JvJJ6vMhC6cyPja', // Nightcall
+                '37SNoSST799vY6YpXp9I7v', // Starboy
+                '2CH79p7Y904X1Y3v6825pS', // Moonlight
+                '09mEucvSqV31v9uccjsGqb'  // Circles
+            ];
+            
+            let randomId;
+            const currentId = state.currentMusic ? state.currentMusic.split('/').pop() : null;
+            
+            do {
+                randomId = playlistIds[Math.floor(Math.random() * playlistIds.length)];
+            } while (randomId === currentId && playlistIds.length > 1);
+
+            const randomUrl = `https://open.spotify.com/embed/track/${randomId}`;
+            state.currentMusic = randomUrl;
+            
+            updateMusicPlayer(randomUrl);
+            save();
+            
+            db.ref('chat').push({ 
+                user: 'system', 
+                text: `🎲 ${state.currentUser.toUpperCase()} escolheu uma música aleatória!`, 
+                time: Date.now() 
+            });
+            
+            triggerNotification('🎲 Música Aleatória', 'Uma música surpresa foi selecionada!');
+        }
+
+        function clearMusic() {
+            if (confirm('❌ Tem certeza que deseja remover a música atual?')) {
+                state.currentMusic = '';
+                save();
+                updateMusicPlayer('');
+                db.ref('chat').push({ 
+                    user: 'system', 
+                    text: `🔇 ${state.currentUser.toUpperCase()} removeu a música.`, 
+                    time: Date.now() 
+                });
+            }
+        }
+
+        function openModal(i) {
+            const c = state.clauses[i] || defaultClauses[i];
+            const hasEdit = state.pendingEdits[i];
+            document.getElementById('modal-title').innerText = c.title;
+            document.getElementById('modal-body').innerText = c.content;
+            const area = document.getElementById('modal-action-area');
+            area.innerHTML = '';
+            if (state.currentUser === 'mici') {
+                area.innerHTML = `<textarea id="edit-tx">${hasEdit || c.content}</textarea><button onclick="propose(${i})" style="width:100%; margin-top:10px; background:var(--neon-blue); border:none; padding:15px; cursor:pointer; font-weight:bold; border-radius:4px;">PROPOR EDIÇÃO</button>`;
+            } else if (state.currentUser === 'juan' && hasEdit) {
+                area.innerHTML = `<div style="border:1px solid var(--warning-yellow); padding:15px; font-size:0.8rem; margin-top:15px; border-radius:4px;"><p style="color:var(--warning-yellow); margin-top:0;">PROPOSTA DA MICI:</p><i>"${hasEdit}"</i><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="approve(${i})" style="flex:1; background:var(--matrix-green); border:none; padding:12px; cursor:pointer; border-radius:4px; font-weight:bold;">ACEITAR</button><button onclick="reject(${i})" style="flex:1; background:var(--alert-red); border:none; padding:12px; cursor:pointer; border-radius:4px; font-weight:bold;">RECUSAR</button></div></div>`;
+            }
+            document.getElementById('modal').classList.add('active');
+        }
+
+        window.closeModal = () => document.getElementById('modal').classList.remove('active');
+        window.propose = (i) => { const val = document.getElementById('edit-tx').value; if(val.trim()){ state.pendingEdits[i] = val; save(); closeModal(); } };
+        window.approve = (i) => {
+                        state.clauses[i].content = state.pendingEdits[i]; 
+                delete state.pendingEdits[i]; 
+                save(); 
+                // Notifica a Mici que o Juan aprovou
+                db.ref('chat').push({ 
+                    user: 'system', 
+                    text: `✅ CLÁUSULA ${i} APROVADA PELO CONTRATANTE.`, 
+                    time: Date.now()
+                });
+                closeModal();
+        };
+
+        window.reject = (i) => { 
+            delete state.pendingEdits[i]; 
+             save(); 
+            // Notifica a Mici que o Juan recusou
+            db.ref('chat').push({ 
+                user: 'system', 
+                text: `❌ PROPOSTA DE EDIÇÃO DA CLÁUSULA ${i} FOI REJEITADA.`, 
+                time: Date.now() 
+            });
+            closeModal();
+                    
+         };
+
+        function iniciarGPS() { 
+            if(navigator.geolocation) {
+                navigator.geolocation.watchPosition(
+                    p => { 
+                        state.locations[state.currentUser] = {lat: p.coords.latitude, lon: p.coords.longitude}; 
+                        save(); 
+                    }, 
+                    error => {
+                        console.error('❌ Erro ao obter localização:', error);
+                        if (error.code === error.PERMISSION_DENIED) {
+                            console.warn('⚠️ Permissão de localização negada pelo usuário.');
+                        }
+                    }, 
+                    {enableHighAccuracy:true, timeout: 10000, maximumAge: 0}
+                );
+            } else {
+                console.error('❌ Geolocalizacão não suportada neste navegador.');
+            }
+        }
+
+        
+        function atualizarDistancia() {
+            const l1 = state.locations.juan, l2 = state.locations.mici;
+            if(l1.lat && l2.lat) {
+                const R = 6371; 
+                const dLat = (l2.lat-l1.lat)*Math.PI/180;
+                const dLon = (l2.lon-l1.lon)*Math.PI/180;
+                const a = Math.sin(dLat/2)**2 + Math.cos(l1.lat*Math.PI/180)*Math.cos(l2.lat*Math.PI/180)*Math.sin(dLon/2)**2;
+                const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+                const disText = d < 1 ? (d*1000).toFixed(0) + ' m' : d.toFixed(2) + ' km';
+                document.getElementById('distancia-val').innerText = disText;
+
+                if(d < 0.2 && !avisouProximidade){
+                    triggerNotification('📍 PROXIMIDADE', 'Unidade detectada a menos de 200m!');
+                    avisouProximidade = true;
+                } else if(d > 0.5){
+                    avisouProximidade = false; 
+                }
+            }
+        }
+
+        function initRadar() {
+
+            // ✅ CORREÇÃO: evita gráfico duplicado
+            if (chart) chart.destroy();
+
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Fome', 'Paciência', 'Tristeza', 'Felicidade'],
+                    datasets: [
+                        {
+                            label: 'Juan',
+                            data: state.biometria.juan.slice(0,4),
+                            borderColor:'#00ff41',
+                            backgroundColor:'rgba(0,255,65,0.1)'
+                        },
+                        {
+                            label: 'Mici',
+                            data: state.biometria.mici.slice(0,4),
+                            borderColor:'#00d2ff',
+                            backgroundColor:'rgba(0,210,255,0.1)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive:true,
+                    maintainAspectRatio:false,
+                    scales:{
+                        r:{
+                            grid:{color:'#333'},
+                            ticks:{display:false},
+                            pointLabels:{color:'#8b949e', font:{size:11}}
+                        }
+                    },
+                    plugins:{
+                        legend:{labels:{color:'#fff', font:{size:11}}}
+                    }
+                }
+            });
+        }
+
+       function updateChart(force = false) {
+            if (!chart) return;
+
+            chart.data.datasets[0].data = [...(state.biometria.juan || [50,50,50,50])].slice(0,4);
+            chart.data.datasets[1].data = [...(state.biometria.mici || [50,50,50,50])].slice(0,4);
+
+            chart.update(force ? 'none' : undefined);
+        }
+                        
+
+
+        document.querySelectorAll('.status-slider').forEach(s => {
+            s.addEventListener('input', (e) => {
+                const idx = e.target.dataset.index;
+                const val = parseInt(e.target.value);
+                
+                // ✅ CORREÇÃO: Garante que o array existe antes de atribuir
+                if (!state.biometria[state.currentUser]) {
+                    state.biometria[state.currentUser] = [50, 50, 50, 50];
+                }
+                
+                state.biometria[state.currentUser][idx] = val; 
+                document.getElementById(`val-${idx}`).innerText = val + "%";
+                
+                // ✅ CORREÇÃO: Atualiza o gráfico imediatamente (feedback local)
+                updateChart(false);
+                
+                // Salva no Firebase com debounce
+                save();
+            });
+        });
+
+        function updateDeployButton() { 
+            const checkedCount = Object.values(state.checkboxes).filter(v => v === true).length;
+            document.getElementById('btn-deploy').disabled = checkedCount < 5; 
+        }
+
+        document.querySelectorAll('.expandable-header').forEach(h => h.onclick = () => h.parentElement.classList.toggle('expanded'));
+        let sec = 0; setInterval(() => { sec++; let h=Math.floor(sec/3600).toString().padStart(2,'0'), m=Math.floor((sec%3600)/60).toString().padStart(2,'0'), s=(sec%60).toString().padStart(2,'0'); document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`; }, 1000);
+    
+        let swRegistration = null;
+        async function registerSW() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const reg = await navigator.serviceWorker.register('sw.js');
+                    console.log("✅ Service Worker registrado!");
+                    swRegistration = reg;
+                    
+                    // Espera o SW estar pronto
+                    await navigator.serviceWorker.ready;
+                    console.log("✅ Service Worker pronto e ativo.");
+                    
+                    // Se houver um usuário logado, tenta registrar o FCM
+                    if (state.currentUser && Notification.permission === 'granted') {
+                        registrarFCM();
+                    }
+                } catch (err) {
+                    console.error("❌ Erro ao registrar Service Worker:", err);
+                }
+            }
+        }
+        registerSW();
+        const messaging = firebase.messaging();
+
+        messaging.onMessage((payload) => {
+            console.log('📩 Push recebido (foreground):', payload);
+
+            const title = payload.notification?.title || 'TACP';
+            const body  = payload.notification?.body  || '';
+
+            triggerNotification(title, body);
+        });
+
+        async function registrarFCM() {
+            try {
+                if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+                if (Notification.permission !== 'granted') return;
+                
+                // ✅ CORREÇÃO: Espera o SW estar totalmente pronto e ATIVO
+                const reg = await navigator.serviceWorker.ready;
+                
+                // Pequeno delay para garantir que o PushManager está disponível
+                if (!reg.active) {
+                    console.log("⏳ Aguardando ativação do Service Worker...");
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                const token = await messaging.getToken({
+                    serviceWorkerRegistration: reg,
+                    vapidKey: "BBkKvm1cWf-3jw9govGz9Iud--j8Ct5BGbTCfF3Jtx-YrYjTs-jIAC6LgOgVRKlweLuzI9GvBFFVBVLRp0LItVQ"
+                });
+
+                if (token) {
+                    console.log("✅ FCM Token:", token);
+                    await firebase.database().ref('fcm_tokens/' + state.currentUser).set(token);
+                }
+            } catch (err) {
+                console.error("❌ Erro ao registrar FCM:", err);
+                // Tenta novamente em 5 segundos se for erro de ativação
+                if (err.message.includes('no active Service Worker')) {
+                    setTimeout(registrarFCM, 5000);
+                }
+            }
+        }
+
+        // O registro do FCM agora é chamado dentro do onAuthStateChanged
+
+        </script>
+    </body>
+</html>
