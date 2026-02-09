@@ -286,7 +286,9 @@
             3: { title: "CLÁUSULA 3 – DOS HONORÁRIOS", content: "Compensação através de suporte de paciência, 01 final de semana por mês para dormir na residência do Contratante e alimentação de contingência." },
             4: { title: "CLÁUSULA 4 – DAS PENALIDADES", content: "Violação do Zero Segundas Intenções: Massagem Completa (30 min). Abandono do Fazer Nada: Multa de 01 lanche." },
             5: { title: "CLÁUSULA 5 – DISPOSIÇÕES GERAIS", content: "O acordo sério será discutido em reunião oficial. A Contratada fica impedida de apresentar desistência." }
-              let state = { 
+        };
+
+        let state = { 
             currentUser: null, 
             clauses: JSON.parse(JSON.stringify(defaultClauses)), 
             pendingEdits: {}, 
@@ -299,7 +301,9 @@
                 ultimo_carinho: Date.now(),
                 quem_interagiu: '---'
             }
-        };       let chart;
+        };
+
+        let chart;
         let blinkInterval = null;
         let isFirstLoad = true;
         let avisouProximidade = false;
