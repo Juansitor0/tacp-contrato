@@ -105,6 +105,34 @@
         .modal-content { background: var(--card-bg); border: 1px solid var(--neon-blue); width: 100%; max-width: 500px; border-radius: 8px; padding: 20px; max-height: 85vh; overflow-y: auto; }
         textarea { width: 100%; height: 120px; background: #000; color: white; border: 1px solid var(--neon-blue); padding: 10px; margin-top: 10px; font-family: inherit; font-size: 1rem; }
         #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4000; }
+
+        /* Pet Section Styles */
+        .pet-section { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--neon-blue); border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+        .pet-container { width: 120px; height: 120px; position: relative; cursor: pointer; image-rendering: pixelated; }
+        .pet-sprite { width: 100%; height: 100%; background-size: contain; background-repeat: no-repeat; background-position: center; transition: transform 0.2s; }
+        .pet-sprite.idle { animation: pet-bounce 2s infinite ease-in-out; }
+        .pet-sprite.sit { transform: translateY(10px) scaleY(0.9); }
+        .pet-sprite.tilt { animation: pet-tilt 1s ease-in-out; }
+        .pet-sprite.happy { animation: pet-happy 0.5s infinite alternate; }
+        
+        @keyframes pet-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes pet-tilt { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(15deg); } }
+        @keyframes pet-happy { from { transform: scale(1); } to { transform: scale(1.1); } }
+
+        .pet-stats { width: 100%; display: flex; justify-content: space-around; margin-top: 10px; font-size: 0.65rem; color: var(--text-gray); }
+        .pet-stat-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .pet-bar-bg { width: 60px; height: 6px; background: #222; border-radius: 3px; overflow: hidden; border: 1px solid #444; }
+        .pet-bar-fill { height: 100%; width: 100%; transition: width 0.5s, background 0.5s; }
+        
+        .pet-actions { display: flex; gap: 10px; margin-top: 15px; width: 100%; }
+        .btn-pet { flex: 1; background: rgba(0, 210, 255, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 5px; transition: 0.2s; }
+        .btn-pet:active { transform: scale(0.95); background: var(--neon-blue); color: black; }
+        
+        .heart-particle { position: absolute; pointer-events: none; font-size: 20px; animation: heart-float 1.5s forwards ease-out; z-index: 100; }
+        @keyframes heart-float { 0% { transform: translateY(0) scale(0); opacity: 1; } 100% { transform: translateY(-100px) scale(1.5); opacity: 0; } }
+        
+        .pet-bubble { position: absolute; top: 10px; right: 10px; background: white; color: black; padding: 5px 10px; border-radius: 10px; font-size: 0.6rem; font-weight: bold; display: none; }
+        .pet-bubble::after { content: ''; position: absolute; bottom: -5px; left: 10px; border-width: 5px 5px 0; border-style: solid; border-color: white transparent; }
     </style>
 </head>
 <body>
@@ -136,6 +164,31 @@
         </div>
         <div class="main-grid">
             <div class="metric-card-graph">
+                <!-- Pet Section -->
+                <div class="pet-section" id="pet-section">
+                    <div class="pet-bubble" id="pet-bubble">Au au! ❤️</div>
+                    <div class="pet-container" onclick="petInteraction('carinho')">
+                        <div id="pet-sprite" class="pet-sprite idle"></div>
+                    </div>
+                    <div class="pet-stats">
+                        <div class="pet-stat-item">
+                            <span>FOME</span>
+                            <div class="pet-bar-bg"><div id="bar-fome" class="pet-bar-fill" style="background: var(--matrix-green);"></div></div>
+                        </div>
+                        <div class="pet-stat-item">
+                            <span>HUMOR</span>
+                            <div class="pet-bar-bg"><div id="bar-humor" class="pet-bar-fill" style="background: var(--neon-blue);"></div></div>
+                        </div>
+                    </div>
+                    <div class="pet-actions">
+                        <button class="btn-pet" onclick="petInteraction('alimentar')">🦴 ALIMENTAR</button>
+                        <button class="btn-pet" onclick="petInteraction('carinho')">❤️ CARINHO</button>
+                    </div>
+                    <div id="pet-info" style="font-size: 0.5rem; color: var(--text-gray); margin-top: 10px; text-align: center;">
+                        Última interação por: <span id="pet-last-user" style="color: var(--neon-blue);">---</span>
+                    </div>
+                </div>
+
                 <span style="font-size: 0.65rem; color: var(--text-gray); text-transform: uppercase; margin-bottom: 5px;">Biometria Emocional</span>
                 <div class="chart-container"><canvas id="radarChart"></canvas></div>
                 
@@ -233,10 +286,20 @@
             3: { title: "CLÁUSULA 3 – DOS HONORÁRIOS", content: "Compensação através de suporte de paciência, 01 final de semana por mês para dormir na residência do Contratante e alimentação de contingência." },
             4: { title: "CLÁUSULA 4 – DAS PENALIDADES", content: "Violação do Zero Segundas Intenções: Massagem Completa (30 min). Abandono do Fazer Nada: Multa de 01 lanche." },
             5: { title: "CLÁUSULA 5 – DISPOSIÇÕES GERAIS", content: "O acordo sério será discutido em reunião oficial. A Contratada fica impedida de apresentar desistência." }
-        };
-
-        let state = { currentUser: null, clauses: JSON.parse(JSON.stringify(defaultClauses)), pendingEdits: {}, checkboxes: {}, biometria: { juan: [50,50,50,50], mici: [50,50,50,50] }, locations: { juan: {lat:0, lon:0}, mici: {lat:0, lon:0} }, currentMusic: null };
-        let chart;
+              let state = { 
+            currentUser: null, 
+            clauses: JSON.parse(JSON.stringify(defaultClauses)), 
+            pendingEdits: {}, 
+            checkboxes: {}, 
+            biometria: { juan: [50,50,50,50,100], mici: [50,50,50,50,100] }, 
+            locations: { juan: {lat:0, lon:0}, mici: {lat:0, lon:0} }, 
+            currentMusic: null,
+            pet: {
+                ultimo_almoco: Date.now(),
+                ultimo_carinho: Date.now(),
+                quem_interagiu: '---'
+            }
+        };       let chart;
         let blinkInterval = null;
         let isFirstLoad = true;
         let avisouProximidade = false;
@@ -343,6 +406,7 @@
                 state.pendingEdits = data.pendingEdits || {};
                 state.checkboxes = data.checkboxes || {};
                 state.locations = data.locations || state.locations;
+                state.pet = data.pet || state.pet;
 
                 const safeBiometria = data.biometria || {};
 
@@ -356,9 +420,8 @@
                         : [50, 50, 50, 50]
                 };
 
-
-
                 state.currentMusic = data.currentMusic || state.currentMusic;
+                updatePetUI();
 
                // 🔔 ALERTAS (Juan monitora Mici)
                 if (state.currentUser === 'juan') {
@@ -790,10 +853,7 @@
         }
 
         function initRadar() {
-
-            // ✅ CORREÇÃO: evita gráfico duplicado
             if (chart) chart.destroy();
-
             const ctx = document.getElementById('radarChart').getContext('2d');
             chart = new Chart(ctx, {
                 type: 'radar',
@@ -867,6 +927,103 @@
             const checkedCount = Object.values(state.checkboxes).filter(v => v === true).length;
             document.getElementById('btn-deploy').disabled = checkedCount < 5; 
         }
+
+        // --- LÓGICA DO MASCOTE (LOBO) ---
+        const PET_ASSETS = {
+            idle: 'https://i.imgur.com/wY6Zp8S.png', // Lobo em pé
+            sit: 'https://i.imgur.com/uG9X6XN.png',  // Lobo sentado
+            happy: 'https://i.imgur.com/wY6Zp8S.png', // Lobo feliz
+            dead: 'https://i.imgur.com/uG9X6XN.png'   // Lobo crítico
+        };
+
+        function updatePetUI() {
+            const now = Date.now();
+            const hoursSinceFood = (now - state.pet.ultimo_almoco) / (1000 * 60 * 60);
+            const hoursSinceLove = (now - state.pet.ultimo_carinho) / (1000 * 60 * 60);
+
+            // Decaimento: 10% por hora
+            const fome = Math.max(0, 100 - (hoursSinceFood * 10));
+            const humor = Math.max(0, 100 - (hoursSinceLove * 15));
+
+            const barFome = document.getElementById('bar-fome');
+            const barHumor = document.getElementById('bar-humor');
+            const sprite = document.getElementById('pet-sprite');
+            const lastUser = document.getElementById('pet-last-user');
+
+            if (barFome) barFome.style.width = fome + '%';
+            if (barHumor) barHumor.style.width = humor + '%';
+            if (lastUser) lastUser.innerText = state.pet.quem_interagiu.toUpperCase();
+
+            if (barFome) barFome.style.background = fome < 30 ? 'var(--alert-red)' : 'var(--matrix-green)';
+            if (barHumor) barHumor.style.background = humor < 30 ? 'var(--alert-red)' : 'var(--neon-blue)';
+
+            if (sprite) {
+                sprite.className = 'pet-sprite';
+                if (fome < 20 || humor < 20) {
+                    sprite.classList.add('sit');
+                    sprite.style.backgroundImage = `url(${PET_ASSETS.sit})`;
+                } else if (humor > 80) {
+                    sprite.classList.add('happy');
+                    sprite.style.backgroundImage = `url(${PET_ASSETS.idle})`;
+                } else {
+                    sprite.classList.add('idle');
+                    sprite.style.backgroundImage = `url(${PET_ASSETS.idle})`;
+                }
+            }
+        }
+
+        function petInteraction(type) {
+            const now = Date.now();
+            if (type === 'alimentar') {
+                state.pet.ultimo_almoco = now;
+                showBubble("Nhac! Delícia! 🦴");
+                playSound('eat');
+            } else {
+                state.pet.ultimo_carinho = now;
+                showBubble("Au au! ❤️");
+                playSound('bark');
+                createHearts();
+            }
+            state.pet.quem_interagiu = state.currentUser;
+            save();
+            updatePetUI();
+        }
+
+        function showBubble(text) {
+            const bubble = document.getElementById('pet-bubble');
+            if (bubble) {
+                bubble.innerText = text;
+                bubble.style.display = 'block';
+                setTimeout(() => bubble.style.display = 'none', 3000);
+            }
+        }
+
+        function createHearts() {
+            const container = document.getElementById('pet-section');
+            if (!container) return;
+            for (let i = 0; i < 5; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'heart-particle';
+                heart.innerHTML = '❤️';
+                heart.style.left = (40 + Math.random() * 40) + '%';
+                heart.style.top = '40%';
+                heart.style.animationDelay = (Math.random() * 0.5) + 's';
+                container.appendChild(heart);
+                setTimeout(() => heart.remove(), 1500);
+            }
+        }
+
+        function playSound(type) {
+            const sounds = {
+                bark: 'https://www.minecraft-sounds.com/sounds/mob/wolf/bark1.mp3',
+                eat: 'https://www.minecraft-sounds.com/sounds/random/eat1.mp3'
+            };
+            const audio = new Audio(sounds[type]);
+            audio.volume = 0.3;
+            audio.play().catch(e => console.log("Áudio bloqueado"));
+        }
+
+        setInterval(updatePetUI, 60000);
 
         document.querySelectorAll('.expandable-header').forEach(h => h.onclick = () => h.parentElement.classList.toggle('expanded'));
         let sec = 0; setInterval(() => { sec++; let h=Math.floor(sec/3600).toString().padStart(2,'0'), m=Math.floor((sec%3600)/60).toString().padStart(2,'0'), s=(sec%60).toString().padStart(2,'0'); document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`; }, 1000);
