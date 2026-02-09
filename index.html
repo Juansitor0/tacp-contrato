@@ -934,10 +934,10 @@
 
         // --- LÓGICA DO MASCOTE (LOBO) ---
         const PET_ASSETS = {
-            idle: 'https://i.imgur.com/wY6Zp8S.png', // Lobo em pé
-            sit: 'https://i.imgur.com/uG9X6XN.png',  // Lobo sentado
-            happy: 'https://i.imgur.com/wY6Zp8S.png', // Lobo feliz
-            dead: 'https://i.imgur.com/uG9X6XN.png'   // Lobo crítico
+            idle: 'https://minecraft.wiki/images/Wolf_Tame.png', // Lobo em pé
+            sit: 'https://minecraft.wiki/images/Sitting_Tame_Wolf.png',  // Lobo sentado
+            happy: 'https://minecraft.wiki/images/Wolf_Tame.png', // Lobo feliz
+            dead: 'https://minecraft.wiki/images/Sitting_Tame_Wolf.png'   // Lobo crítico
         };
 
         function updatePetUI() {
@@ -1019,12 +1019,13 @@
 
         function playSound(type) {
             const sounds = {
-                bark: 'https://www.minecraft-sounds.com/sounds/mob/wolf/bark1.mp3',
-                eat: 'https://www.minecraft-sounds.com/sounds/random/eat1.mp3'
+                bark: 'https://static.wikia.nocookie.net/minecraft_gamepedia/images/5/52/Wolf_bark1.ogg',
+                eat: 'https://static.wikia.nocookie.net/minecraft_gamepedia/images/b/b3/Eat1.ogg'
             };
             const audio = new Audio(sounds[type]);
             audio.volume = 0.3;
-            audio.play().catch(e => console.log("Áudio bloqueado"));
+            audio.crossOrigin = "anonymous";
+            audio.play().catch(e => console.log("Áudio bloqueado ou erro de rede:", e));
         }
 
         setInterval(updatePetUI, 60000);

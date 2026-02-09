@@ -1,8 +1,8 @@
 /* ================================
-   Service Worker - TACP v2.0
+   Service Worker - TACP v2.1
    ================================ */
 
-const CACHE_NAME = 'tacp-cache-v2';
+const CACHE_NAME = 'tacp-cache-v2.1';
 const ASSETS = [
   './',
   './index.html',
@@ -12,19 +12,18 @@ const ASSETS = [
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
-// Força o Service Worker a se tornar ativo imediatamente
 self.addEventListener('install', event => {
-  console.log('[SW] Instalando v2...');
+  console.log('[SW] Instalando v2.1...');
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS);
+      return cache.addAll(ASSETS).catch(err => console.warn('[SW] Falha ao cachear assets:', err));
     })
   );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
-  console.log('[SW] Ativando v2 e limpando caches antigos...');
+  console.log('[SW] Ativando v2.1 e limpando caches antigos...');
   event.waitUntil(
     Promise.all([
       clients.claim(),
@@ -37,9 +36,12 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Estratégia: Network First (Tenta rede, se falhar usa cache)
-// Isso evita o erro 404 se o arquivo existir na rede mas o cache estiver corrompido
 self.addEventListener('fetch', event => {
+  // Não interceptar chamadas de áudio ou externas que podem falhar por CORS
+  if (event.request.url.includes('wikia') || event.request.url.includes('minecraft.wiki') || event.request.url.includes('spotify')) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request).catch(() => {
       return caches.match(event.request);
