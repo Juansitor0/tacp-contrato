@@ -108,16 +108,9 @@
 
         /* Pet Section Styles */
         .pet-section { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--neon-blue); border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-        .pet-container { width: 120px; height: 120px; position: relative; cursor: pointer; image-rendering: pixelated; }
-        .pet-sprite { 
-            width: 100%; 
-            height: 100%; 
-            background-size: 300% 300%; 
-            background-repeat: no-repeat; 
-            background-position: 0 0; 
-            image-rendering: pixelated;
-            transition: transform 0.2s; 
-        }
+        .pet-container { width: 100%; height: 220px; position: relative; cursor: pointer; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid rgba(0, 210, 255, 0.2); }
+        .pet-3d-embed { width: 100%; height: 100%; border: none; }
+        .pet-overlay-trigger { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; }
         
         @keyframes pet-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
         @keyframes pet-tilt { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(15deg); } }
@@ -187,8 +180,11 @@
                 <!-- Pet Section -->
                 <div class="pet-section" id="pet-section">
                     <div class="pet-bubble" id="pet-bubble">Au au! ❤️</div>
-                    <div class="pet-container" onclick="petInteraction('carinho')">
-                        <div id="pet-sprite" class="pet-sprite idle"></div>
+                    <div class="pet-container">
+                        <div class="pet-overlay-trigger" onclick="petInteraction('carinho')"></div>
+                        <iframe title="Dog Puppy - Animated Minecraft Model" class="pet-3d-embed" 
+                            src="https://sketchfab.com/models/84ab41d7b7a147c48541a583be9051cc/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=0&ui_stop=0&ui_theatre=1&ui_watermark=0" 
+                            allow="autoplay; fullscreen; xr-spatial-tracking"></iframe>
                     </div>
                     <div class="pet-stats">
                         <div class="pet-stat-item">
@@ -966,11 +962,7 @@
             document.getElementById('btn-deploy').disabled = checkedCount < 5; 
         }
 
-        // --- LÓGICA DO MASCOTE (LOBO 2D) ---
-        const PET_ASSETS = {
-            sprite: 'assets/images/wolf_spritesheet.jpg'
-        };
-
+        // --- LÓGICA DO MASCOTE (LOBO 3D) ---
         function updatePetUI() {
             if (!state.pet) return;
             const now = Date.now();
@@ -983,8 +975,8 @@
 
             const barFome = document.getElementById('bar-fome');
             const barHumor = document.getElementById('bar-humor');
-            const sprite = document.getElementById('pet-sprite');
             const lastUser = document.getElementById('pet-last-user');
+            const container = document.querySelector('.pet-container');
 
             if (barFome) {
                 barFome.style.width = fome + '%';
@@ -996,20 +988,8 @@
             }
             if (lastUser) lastUser.innerText = (state.pet.quem_interagiu || '---').toUpperCase();
 
-            if (sprite) {
-                sprite.style.backgroundImage = `url(${PET_ASSETS.sprite})`;
-                sprite.className = 'pet-sprite';
-                
-                if (fome < 20 || humor < 20) {
-                    sprite.classList.add('sit');
-                    sprite.style.backgroundPosition = '0% 33%'; 
-                } else if (humor > 80) {
-                    sprite.classList.add('happy');
-                    sprite.style.backgroundPosition = '33% 0%'; 
-                } else {
-                    sprite.classList.add('idle');
-                    sprite.style.backgroundPosition = '0% 0%'; 
-                }
+            if (container) {
+                container.style.borderColor = (fome < 20 || humor < 20) ? 'var(--alert-red)' : 'rgba(0, 210, 255, 0.2)';
             }
         }
 
