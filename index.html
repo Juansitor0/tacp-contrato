@@ -117,11 +117,27 @@
         @keyframes pet-happy { from { transform: scale(1); } to { transform: scale(1.1); } }
 
         .pet-stats { width: 100%; display: flex; justify-content: space-around; margin-top: 10px; font-size: 0.65rem; color: var(--text-gray); }
-        .pet-stat-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .pet-bar-bg { width: 60px; height: 6px; background: #222; border-radius: 3px; overflow: hidden; border: 1px solid #444; }
+        .pet-stat-item { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+        .pet-bar-bg { width: 100%; max-width: 60px; height: 6px; background: #222; border-radius: 3px; overflow: hidden; border: 1px solid #444; }
         .pet-bar-fill { height: 100%; width: 100%; transition: width 0.5s, background 0.5s; }
         
-        .pet-actions { display: flex; gap: 10px; margin-top: 15px; width: 100%; }
+        .pet-level-badge { position: absolute; top: 10px; left: 10px; background: var(--neon-blue); color: black; padding: 2px 8px; border-radius: 10px; font-size: 0.6rem; font-weight: bold; z-index: 10; box-shadow: 0 0 10px var(--neon-blue); }
+        .pet-xp-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: rgba(255,255,255,0.1); z-index: 10; }
+        .pet-xp-fill { height: 100%; width: 0%; background: var(--matrix-green); transition: width 0.3s; }
+
+        .pet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; width: 100%; }
+        
+        /* Efeitos Visuais */
+        .bubble-particle { position: absolute; pointer-events: none; background: rgba(255,255,255,0.4); border: 1px solid white; border-radius: 50%; animation: bubble-float 2s forwards ease-out; z-index: 100; }
+        @keyframes bubble-float { 0% { transform: translateY(0) scale(0.5); opacity: 1; } 100% { transform: translateY(-120px) scale(1.2); opacity: 0; } }
+        
+        .star-particle { position: absolute; pointer-events: none; color: var(--warning-yellow); font-size: 14px; animation: star-pop 1s forwards ease-out; z-index: 100; }
+        @keyframes star-pop { 0% { transform: scale(0) rotate(0deg); opacity: 1; } 100% { transform: scale(1.5) rotate(180deg); opacity: 0; } }
+
+        .sleep-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,20,0.7); display: none; z-index: 6; pointer-events: none; align-items: center; justify-content: center; font-size: 2rem; }
+        .sleep-overlay.active { display: flex; }
+        .z-particle { animation: z-float 3s infinite; opacity: 0; position: absolute; color: white; font-weight: bold; }
+        @keyframes z-float { 0% { transform: translate(0,0); opacity: 0; } 50% { opacity: 1; } 100% { transform: translate(20px, -40px); opacity: 0; } }
         .btn-pet { flex: 1; background: rgba(0, 210, 255, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 5px; transition: 0.2s; }
         .btn-pet:active { transform: scale(0.95); background: var(--neon-blue); color: black; }
         
@@ -163,26 +179,39 @@
             <div class="metric-card-graph">
                 <!-- Pet Section -->
                 <div class="pet-section" id="pet-section">
+                    <div class="pet-level-badge" id="pet-level">LVL 1: FILHOTE</div>
                     <div class="pet-bubble" id="pet-bubble">Au au! ❤️</div>
                     <div class="pet-container">
+                        <div class="sleep-overlay" id="sleep-overlay"><span class="z-particle" style="left:40%; top:40%; animation-delay:0s">Z</span><span class="z-particle" style="left:50%; top:30%; animation-delay:1s">Z</span><span class="z-particle" style="left:60%; top:45%; animation-delay:2s">Z</span></div>
                         <div class="pet-overlay-trigger" onclick="petInteraction('carinho')"></div>
                         <iframe title="Pembroke Welsh Corgi" class="pet-3d-embed" 
                             src="https://sketchfab.com/models/d48e4283311240cd94297f022bb78693/embed?autostart=1&camera=0&preload=1&transparent=1&ui_hint=0&ui_infos=0&ui_stop=0&ui_watermark=0" 
                             allow="autoplay; fullscreen; xr-spatial-tracking"></iframe>
+                        <div class="pet-xp-bar"><div id="bar-xp" class="pet-xp-fill"></div></div>
                     </div>
                     <div class="pet-stats">
                         <div class="pet-stat-item">
                             <span>FOME</span>
-                            <div class="pet-bar-bg"><div id="bar-fome" class="pet-bar-fill" style="background: var(--matrix-green);"></div></div>
+                            <div class="pet-bar-bg"><div id="bar-fome" class="pet-bar-fill"></div></div>
                         </div>
                         <div class="pet-stat-item">
                             <span>HUMOR</span>
-                            <div class="pet-bar-bg"><div id="bar-humor" class="pet-bar-fill" style="background: var(--neon-blue);"></div></div>
+                            <div class="pet-bar-bg"><div id="bar-humor" class="pet-bar-fill"></div></div>
+                        </div>
+                        <div class="pet-stat-item">
+                            <span>HIGIENE</span>
+                            <div class="pet-bar-bg"><div id="bar-higiene" class="pet-bar-fill"></div></div>
+                        </div>
+                        <div class="pet-stat-item">
+                            <span>ENERGIA</span>
+                            <div class="pet-bar-bg"><div id="bar-energia" class="pet-bar-fill"></div></div>
                         </div>
                     </div>
                     <div class="pet-actions">
-                        <button class="btn-pet" onclick="petInteraction('alimentar')">🦴 ALIMENTAR</button>
-                        <button class="btn-pet" onclick="petInteraction('carinho')">❤️ CARINHO</button>
+                        <button class="btn-pet" onclick="petInteraction('alimentar')">🦴 COMER</button>
+                        <button class="btn-pet" onclick="petInteraction('carinho')">❤️ AMAR</button>
+                        <button class="btn-pet" onclick="petInteraction('banho')">🧼 BANHO</button>
+                        <button class="btn-pet" id="btn-sono" onclick="petInteraction('sono')">💤 SONO</button>
                     </div>
                     <div id="pet-info" style="font-size: 0.5rem; color: var(--text-gray); margin-top: 10px; text-align: center;">
                         Última interação por: <span id="pet-last-user" style="color: var(--neon-blue);">---</span>
@@ -299,6 +328,10 @@
             pet: {
                 ultimo_almoco: Date.now(),
                 ultimo_carinho: Date.now(),
+                ultimo_banho: Date.now(),
+                ultimo_sono: Date.now(),
+                xp: 0,
+                dormindo: false,
                 quem_interagiu: '---'
             }
         };
@@ -934,48 +967,131 @@
 
         // --- LÓGICA DO MASCOTE (CORGI 3D) ---
         function updatePetUI() {
+            if (!state.pet) return;
             const now = Date.now();
+            
+            // Decaimento
             const hoursSinceFood = (now - state.pet.ultimo_almoco) / (1000 * 60 * 60);
             const hoursSinceLove = (now - state.pet.ultimo_carinho) / (1000 * 60 * 60);
+            const hoursSinceBath = (now - (state.pet.ultimo_banho || now)) / (1000 * 60 * 60);
+            const hoursSinceSleep = (now - (state.pet.ultimo_sono || now)) / (1000 * 60 * 60);
 
-            // Decaimento: 10% por hora
-            const fome = Math.max(0, 100 - (hoursSinceFood * 10));
-            const humor = Math.max(0, 100 - (hoursSinceLove * 15));
+            const fome = Math.max(0, 100 - (hoursSinceFood * 8));
+            const humor = Math.max(0, 100 - (hoursSinceLove * 12));
+            const higiene = Math.max(0, 100 - (hoursSinceBath * 5));
+            let energia = state.pet.dormindo ? Math.min(100, (hoursSinceSleep * 25)) : Math.max(0, 100 - (hoursSinceSleep * 10));
 
-            const barFome = document.getElementById('bar-fome');
-            const barHumor = document.getElementById('bar-humor');
-            const lastUser = document.getElementById('pet-last-user');
+            // Atualizar Barras
+            const updateBar = (id, val, colorLow, colorHigh) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.style.width = val + '%';
+                    el.style.background = val < 30 ? colorLow : colorHigh;
+                }
+            };
 
-            if (barFome) barFome.style.width = fome + '%';
-            if (barHumor) barHumor.style.width = humor + '%';
-            if (lastUser) lastUser.innerText = state.pet.quem_interagiu.toUpperCase();
+            updateBar('bar-fome', fome, 'var(--alert-red)', 'var(--matrix-green)');
+            updateBar('bar-humor', humor, 'var(--alert-red)', 'var(--neon-blue)');
+            updateBar('bar-higiene', higiene, 'var(--alert-red)', '#00ffcc');
+            updateBar('bar-energia', energia, 'var(--alert-red)', '#ffcc00');
 
-            if (barFome) barFome.style.background = fome < 30 ? 'var(--alert-red)' : 'var(--matrix-green)';
-            if (barHumor) barHumor.style.background = humor < 30 ? 'var(--alert-red)' : 'var(--neon-blue)';
+            // Sistema de Nível
+            const xp = state.pet.xp || 0;
+            const level = Math.floor(xp / 100) + 1;
+            const xpProgress = xp % 100;
+            const titles = ["FILHOTE", "JOVEM", "ADULTO", "MESTRE", "LENDÁRIO"];
+            const title = titles[Math.min(level - 1, titles.length - 1)];
             
-            // O modelo 3D é interativo por si só, então não precisamos trocar sprites.
-            // Mas podemos adicionar um efeito visual no container se ele estiver triste.
+            const lvlEl = document.getElementById('pet-level');
+            const xpEl = document.getElementById('bar-xp');
+            if (lvlEl) lvlEl.innerText = `LVL ${level}: ${title}`;
+            if (xpEl) xpEl.style.width = xpProgress + '%';
+
+            // Estado de Sono
+            const sleepOverlay = document.getElementById('sleep-overlay');
+            const btnSono = document.getElementById('btn-sono');
+            if (sleepOverlay) sleepOverlay.className = state.pet.dormindo ? 'sleep-overlay active' : 'sleep-overlay';
+            if (btnSono) btnSono.innerText = state.pet.dormindo ? '☀️ ACORDAR' : '💤 SONO';
+
+            const lastUser = document.getElementById('pet-last-user');
+            if (lastUser) lastUser.innerText = (state.pet.quem_interagiu || '---').toUpperCase();
+
             const container = document.querySelector('.pet-container');
             if (container) {
-                container.style.borderColor = (fome < 20 || humor < 20) ? 'var(--alert-red)' : 'rgba(0, 210, 255, 0.3)';
+                container.style.borderColor = (fome < 20 || humor < 20 || higiene < 20) ? 'var(--alert-red)' : 'rgba(0, 210, 255, 0.3)';
+                // Efeito de crescimento baseado no nível
+                const scale = 1 + (level * 0.05);
+                const iframe = container.querySelector('iframe');
+                if (iframe) iframe.style.transform = `scale(${Math.min(scale, 1.5)})`;
             }
         }
 
         function petInteraction(type) {
+            if (!state.pet) return;
             const now = Date.now();
+            
+            if (state.pet.dormindo && type !== 'sono') {
+                showBubble("Zzz... Deixe-me dormir!");
+                return;
+            }
+
+            let xpGained = 5;
             if (type === 'alimentar') {
                 state.pet.ultimo_almoco = now;
                 showBubble("Nhac! Delícia! 🦴");
                 playSound('eat');
-            } else {
+                createStars();
+            } else if (type === 'carinho') {
                 state.pet.ultimo_carinho = now;
                 showBubble("Au au! ❤️");
                 playSound('bark');
                 createHearts();
+            } else if (type === 'banho') {
+                state.pet.ultimo_banho = now;
+                showBubble("Splosh! Limpinho! 🧼");
+                createBubbles();
+                xpGained = 10;
+            } else if (type === 'sono') {
+                state.pet.dormindo = !state.pet.dormindo;
+                state.pet.ultimo_sono = now;
+                showBubble(state.pet.dormindo ? "Boa noite... 💤" : "Bom dia! ☀️");
+                xpGained = state.pet.dormindo ? 2 : 0;
             }
+
+            state.pet.xp = (state.pet.xp || 0) + xpGained;
             state.pet.quem_interagiu = state.currentUser;
             save();
             updatePetUI();
+        }
+
+        function createBubbles() {
+            const container = document.getElementById('pet-section');
+            for (let i = 0; i < 10; i++) {
+                const b = document.createElement('div');
+                b.className = 'bubble-particle';
+                const size = Math.random() * 15 + 5;
+                b.style.width = size + 'px';
+                b.style.height = size + 'px';
+                b.style.left = (20 + Math.random() * 60) + '%';
+                b.style.top = '60%';
+                b.style.animationDelay = (Math.random() * 1) + 's';
+                container.appendChild(b);
+                setTimeout(() => b.remove(), 2000);
+            }
+        }
+
+        function createStars() {
+            const container = document.getElementById('pet-section');
+            for (let i = 0; i < 8; i++) {
+                const s = document.createElement('div');
+                s.className = 'star-particle';
+                s.innerHTML = '⭐';
+                s.style.left = (30 + Math.random() * 40) + '%';
+                s.style.top = '30%';
+                s.style.animationDelay = (Math.random() * 0.5) + 's';
+                container.appendChild(s);
+                setTimeout(() => s.remove(), 1000);
+            }
         }
 
         function showBubble(text) {
@@ -1003,14 +1119,23 @@
         }
 
         function playSound(type) {
+            // ✅ CORREÇÃO: Usando sons da biblioteca oficial do Minecraft Wiki que são mais estáveis
             const sounds = {
-                bark: 'https://static.wikia.nocookie.net/minecraft_gamepedia/images/5/52/Wolf_bark1.ogg',
-                eat: 'https://static.wikia.nocookie.net/minecraft_gamepedia/images/b/b3/Eat1.ogg'
+                bark: 'https://minecraft.wiki/images/Wolf_bark1.ogg',
+                eat: 'https://minecraft.wiki/images/Eat1.ogg'
             };
             const audio = new Audio(sounds[type]);
             audio.volume = 0.3;
             audio.crossOrigin = "anonymous";
-            audio.play().catch(e => console.log("Áudio bloqueado ou erro de rede:", e));
+            audio.play().catch(e => {
+                console.log("Áudio bloqueado ou erro de rede:", e);
+                // Fallback se o OGG falhar (alguns navegadores mobile preferem MP3)
+                if (type === 'bark') {
+                    const fallback = new Audio('https://www.myinstants.com/media/sounds/minecraft-wolf-bark.mp3');
+                    fallback.volume = 0.2;
+                    fallback.play().catch(() => {});
+                }
+            });
         }
 
         setInterval(updatePetUI, 60000);
