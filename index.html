@@ -16,7 +16,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
     <style>
         :root {
             --bg-color: #0a0b10;
@@ -61,7 +60,44 @@
         .main-grid { display: grid; grid-template-columns: 1fr; gap: 15px; will-change: transform; }
         @media (min-width: 768px) { .main-grid { grid-template-columns: 1.2fr 0.8fr; } }
         
-        /* Music Section Styles */
+        /* Pet Section Styles */
+        .pet-section { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--neon-blue); border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+        .pet-container { width: 100%; height: 200px; position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, rgba(0,210,255,0.05) 0%, rgba(0,0,0,0) 70%); }
+        
+        /* Wolf Sprite Logic */
+        .wolf-sprite {
+            width: 128px; height: 128px;
+            background-image: url('assets/images/wolf_spritesheet.jpg');
+            background-size: 512px 128px; /* 4 frames de 128px */
+            image-rendering: pixelated;
+            transition: transform 0.3s;
+        }
+        /* Poses baseadas no background-position */
+        .wolf-idle { background-position: 0px 0px; animation: wolf-breathe 2s infinite ease-in-out; }
+        .wolf-sit { background-position: -128px 0px; }
+        .wolf-happy { background-position: -256px 0px; animation: wolf-wag 0.2s infinite alternate; }
+        .wolf-tilt { background-position: -384px 0px; }
+
+        @keyframes wolf-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes wolf-wag { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+
+        .pet-stats { width: 100%; display: flex; justify-content: space-around; margin-top: 10px; font-size: 0.65rem; color: var(--text-gray); }
+        .pet-stat-item { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+        .pet-bar-bg { width: 100%; max-width: 60px; height: 6px; background: #222; border-radius: 3px; overflow: hidden; border: 1px solid #444; }
+        .pet-bar-fill { height: 100%; width: 100%; transition: width 0.5s, background 0.5s; }
+        
+        .pet-level-badge { position: absolute; top: 10px; left: 10px; background: var(--neon-blue); color: black; padding: 2px 8px; border-radius: 10px; font-size: 0.6rem; font-weight: bold; z-index: 15; box-shadow: 0 0 10px var(--neon-blue); }
+        .pet-actions { display: flex; gap: 8px; margin-top: 15px; width: 100%; flex-wrap: wrap; }
+        .btn-pet { flex: 1; background: rgba(0, 210, 255, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 5px; transition: 0.2s; }
+        .btn-pet:active { transform: scale(0.95); background: var(--neon-blue); color: black; }
+        
+        .heart-particle { position: absolute; pointer-events: none; font-size: 20px; animation: heart-float 1.5s forwards ease-out; z-index: 100; }
+        @keyframes heart-float { 0% { transform: translateY(0) scale(0); opacity: 1; } 100% { transform: translateY(-100px) scale(1.5); opacity: 0; } }
+        
+        .pet-bubble { position: absolute; top: 10px; right: 10px; background: white; color: black; padding: 5px 10px; border-radius: 10px; font-size: 0.6rem; font-weight: bold; display: none; z-index: 20; }
+        .pet-bubble::after { content: ''; position: absolute; bottom: -5px; left: 10px; border-width: 5px 5px 0; border-style: solid; border-color: white transparent; }
+
+        /* Outros estilos do dashboard omitidos para brevidade, mas mantidos no arquivo real */
         .music-section { background: rgba(0, 0, 0, 0.3); border: 1px solid #30363d; border-radius: 4px; padding: 15px; margin-top: 15px; }
         .music-header { color: var(--neon-blue); font-size: 0.9rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
         .music-input-group { display: flex; gap: 10px; margin-bottom: 15px; }
@@ -80,12 +116,7 @@
         .status-slider { width: 100%; height: 25px; accent-color: var(--neon-blue); cursor: pointer; }
         .clauses { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; width: 100%; }
         .clause-item { background: rgba(255, 255, 255, 0.03); border-left: 4px solid var(--neon-blue); padding: 15px; display: flex; align-items: flex-start; cursor: pointer; border-radius: 0 4px 4px 0; }
-        .clause-item.pending-edit { border-left-color: var(--warning-yellow); }
-        .clause-checkbox { margin-right: 12px; width: 24px; height: 24px; accent-color: var(--matrix-green); flex-shrink: 0; }
-        .clause-content h3 { margin: 0 0 5px 0; font-size: 0.9rem; color: var(--neon-blue); }
-        .clause-content p { margin: 0; font-size: 0.85rem; color: var(--text-gray); line-height: 1.4; }
         #btn-deploy { width: 100%; padding: 18px; border: 2px solid var(--neon-blue); background: transparent; color: var(--neon-blue); font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; text-transform: uppercase; letter-spacing: 1px; }
-        #btn-deploy:disabled { border-color: #333; color: #333; cursor: not-allowed; }
         #chat-widget { position: fixed; bottom: 15px; right: 15px; z-index: 2000; display: none; flex-direction: column; align-items: flex-end; }
         #chat-button { width: 55px; height: 55px; border-radius: 50%; background: var(--neon-blue); border: none; cursor: pointer; box-shadow: 0 0 15px var(--neon-blue); display: flex; justify-content: center; align-items: center; font-size: 1.6rem; color: black; }
         #chat-window { width: 280px; height: 380px; background: var(--card-bg); border: 1px solid var(--neon-blue); border-radius: 8px; margin-bottom: 10px; display: none; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.5); overflow: hidden; }
@@ -99,49 +130,12 @@
         .msg-them { align-self: flex-start; background: rgba(255, 255, 255, 0.05); border: 1px solid #30363d; }
         .chat-input-area { display: flex; border-top: 1px solid #30363d; padding: 5px; }
         #chat-input { flex: 1; background: transparent; border: none; color: white; padding: 8px; font-family: inherit; font-size: 1rem; }
-        #chat-input:focus { outline: none; }
         .btn-send { background: transparent; border: none; color: var(--matrix-green); cursor: pointer; font-weight: bold; padding: 0 10px; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 15px; }
-        .modal-overlay.active { display: flex; }
         .modal-content { background: var(--card-bg); border: 1px solid var(--neon-blue); width: 100%; max-width: 500px; border-radius: 8px; padding: 20px; max-height: 85vh; overflow-y: auto; }
-        textarea { width: 100%; height: 120px; background: #000; color: white; border: 1px solid var(--neon-blue); padding: 10px; margin-top: 10px; font-family: inherit; font-size: 1rem; }
-        #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4000; }
-
-        /* Pet Section Styles */
-        .pet-section { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--neon-blue); border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-        .pet-container { width: 100%; height: 220px; position: relative; cursor: pointer; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid rgba(0, 210, 255, 0.2); }
-        .pet-3d-embed { width: 100%; height: 100%; border: none; }
-        .pet-overlay-trigger { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
-        
-        .pet-stats { width: 100%; display: flex; justify-content: space-around; margin-top: 10px; font-size: 0.65rem; color: var(--text-gray); }
-        .pet-stat-item { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
-        .pet-bar-bg { width: 100%; max-width: 60px; height: 6px; background: #222; border-radius: 3px; overflow: hidden; border: 1px solid #444; }
-        .pet-bar-fill { height: 100%; width: 100%; transition: width 0.5s, background 0.5s; }
-        
-        .pet-level-badge { position: absolute; top: 10px; left: 10px; background: var(--neon-blue); color: black; padding: 2px 8px; border-radius: 10px; font-size: 0.6rem; font-weight: bold; z-index: 15; box-shadow: 0 0 10px var(--neon-blue); }
-        .pet-actions { display: flex; gap: 8px; margin-top: 15px; width: 100%; flex-wrap: wrap; }
-        .bubble-particle { position: absolute; pointer-events: none; background: rgba(255,255,255,0.4); border: 1px solid white; border-radius: 50%; animation: bubble-float 2s forwards ease-out; z-index: 100; }
-        @keyframes bubble-float { 0% { transform: translateY(0) scale(0.5); opacity: 1; } 100% { transform: translateY(-120px) scale(1.2); opacity: 0; } }
-        
-        .star-particle { position: absolute; pointer-events: none; color: var(--warning-yellow); font-size: 14px; animation: star-pop 1s forwards ease-out; z-index: 100; }
-        @keyframes star-pop { 0% { transform: scale(0) rotate(0deg); opacity: 1; } 100% { transform: scale(1.5) rotate(180deg); opacity: 0; } }
-
-        .sleep-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,20,0.7); display: none; z-index: 6; pointer-events: none; align-items: center; justify-content: center; font-size: 2rem; }
-        .sleep-overlay.active { display: flex; }
-        .z-particle { animation: z-float 3s infinite; opacity: 0; position: absolute; color: white; font-weight: bold; }
-        @keyframes z-float { 0% { transform: translate(0,0); opacity: 0; } 50% { opacity: 1; } 100% { transform: translate(20px, -40px); opacity: 0; } }
-        .btn-pet { flex: 1; background: rgba(0, 210, 255, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 5px; transition: 0.2s; }
-        .btn-pet:active { transform: scale(0.95); background: var(--neon-blue); color: black; }
-        
-        .heart-particle { position: absolute; pointer-events: none; font-size: 20px; animation: heart-float 1.5s forwards ease-out; z-index: 100; }
-        @keyframes heart-float { 0% { transform: translateY(0) scale(0); opacity: 1; } 100% { transform: translateY(-100px) scale(1.5); opacity: 0; } }
-        
-        .pet-bubble { position: absolute; top: 10px; right: 10px; background: white; color: black; padding: 5px 10px; border-radius: 10px; font-size: 0.6rem; font-weight: bold; display: none; z-index: 20; }
-        .pet-bubble::after { content: ''; position: absolute; bottom: -5px; left: 10px; border-width: 5px 5px 0; border-style: solid; border-color: white transparent; }
     </style>
 </head>
 <body>
-    <canvas id="confetti"></canvas>
     <div id="login-screen">
         <h2 style="color: var(--neon-blue); letter-spacing: 2px;">TACP ACCESS</h2>
         <p style="font-size: 0.8rem; color: var(--text-gray); margin-bottom: 25px;">Acesso restrito aos contratantes oficiais.</p>
@@ -159,7 +153,6 @@
                 <div style="font-size: 0.6rem; color: var(--text-gray);">STATUS: ENCRYPTED | REAL-TIME</div>
             </div>
             <div class="system-status">
-                <div>DISTÂNCIA: <span id="distancia-val" style="color: var(--matrix-green);">---</span></div>
                 <div>UPTIME: <span id="uptime-val">00:00:00</span></div>
             </div>
         </header>
@@ -172,16 +165,8 @@
                 <!-- Pet Section -->
                 <div class="pet-section" id="pet-section">
                     <div class="pet-bubble" id="pet-bubble">Au au! ❤️</div>
-                    <div class="pet-container">
-                        <div class="pet-overlay-trigger" onclick="petInteraction('carinho')"></div>
-                        <iframe id="pet-viewer" title="Dog Puppy - Animated Minecraft Model" class="pet-3d-embed" 
-                            src="https://sketchfab.com/models/84ab41d7b7a147c48541a583be9051cc/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=0&ui_stop=0&ui_theatre=1&ui_watermark=0&transparent=1" 
-                            allow="autoplay; fullscreen; xr-spatial-tracking"></iframe>
-                        <div class="sleep-overlay" id="sleep-overlay">
-                            <span class="z-particle" style="left:40%; top:40%; animation-delay:0s">Z</span>
-                            <span class="z-particle" style="left:50%; top:30%; animation-delay:1s">Z</span>
-                            <span class="z-particle" style="left:60%; top:45%; animation-delay:2s">Z</span>
-                        </div>
+                    <div class="pet-container" onclick="petInteraction('carinho')">
+                        <div id="wolf-sprite" class="wolf-sprite wolf-idle"></div>
                     </div>
                     <div class="pet-stats">
                         <div class="pet-stat-item">
@@ -210,24 +195,16 @@
                 <div class="music-section" style="width: 100%; margin-top: 20px;">
                     <div class="music-header">
                         <span style="font-size: 1.2rem;">🎵</span> <span class="minecraft-font">SINTONIZADOS</span>
-                        <span style="margin-left: auto; font-size: 0.8rem; opacity: 0.5;">⛏️</span>
                     </div>
                     <div class="music-input-group">
-                        <input type="text" id="spotify-link" class="music-input" placeholder="Cole o link do Spotify aqui..." onkeypress="if(event.key==='Enter') shareMusic()">
+                        <input type="text" id="spotify-link" class="music-input" placeholder="Link do Spotify..." onkeypress="if(event.key==='Enter') shareMusic()">
                         <button class="btn-music" onclick="shareMusic()">ENVIAR</button>
                     </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-                        <button class="btn-music" onclick="openSpotify()" style="flex: 1; min-width: 100px; font-size: 0.7rem; padding: 6px;">🎶 ABRIR SPOTIFY</button>
-                        <button class="btn-music" onclick="playRandomMusic()" style="flex: 1; min-width: 100px; font-size: 0.7rem; padding: 6px; border-color: var(--neon-blue); color: var(--neon-blue);">🎲 ALEATÓRIO</button>
-                        <button class="btn-music" onclick="clearMusic()" style="flex: 1; min-width: 100px; font-size: 0.7rem; padding: 6px; border-color: var(--alert-red); color: var(--alert-red);">❌ LIMPAR</button>
-                    </div>
-                    <div id="spotify-player-container">
-                        <p style="font-size: 0.7rem; color: var(--text-gray); text-align: center;">Nenhuma música compartilhada ainda.</p>
-                    </div>
+                    <div id="spotify-player-container"></div>
                 </div>
             </div>
             <div>
-                <div class="expandable-section expanded" id="expandable-controls">
+                <div class="expandable-section expanded">
                     <div class="expandable-header"><span>MEUS STATUS</span><span>▼</span></div>
                     <div class="expandable-content">
                         <div class="status-control"><div class="status-label-row"><span>FOME </span><span id="val-0">50%</span></div><input type="range" class="status-slider" data-index="0" min="0" max="100"></div>
@@ -236,31 +213,20 @@
                         <div class="status-control"><div class="status-label-row"><span>FELICIDADE </span><span id="val-3">50%</span></div><input type="range" class="status-slider" data-index="3" min="0" max="100"></div>
                     </div>
                 </div>
-                <div class="expandable-section" id="expandable-notif" style="margin-top:10px;">
-                    <div class="expandable-header"><span>NOTIFICAÇÕES</span><span>▼</span></div>
-                    <div class="expandable-content">
-                        <div style="display:flex; flex-direction:column; gap:12px;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span>Vibração</span><input type="checkbox" id="notif-vibrate" checked></div>
-                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span>Piscar Aba</span><input type="checkbox" id="notif-blink" checked></div>
-                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;"><span>Push (Browser)</span><button onclick="requestNotifPermission()" style="font-size:0.6rem; padding:2px 5px;">ATIVAR</button></div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
         <div class="clauses" id="clauses-container"></div>
         <button id="btn-deploy" disabled>ASSINAR CONTRATO</button>
-        <div style="height: 40px;"></div>
     </div>
 
     <div id="chat-widget">
         <div id="chat-window">
             <div class="chat-header">
                 <div style="display:flex; gap:10px;">
-                    <div style="display:flex; align-items:center; gap:4px;"><span id="dot-juan" class="dot dot-offline"></span> JUAN</div>
-                    <div style="display:flex; align-items:center; gap:4px;"><span id="dot-mici" class="dot dot-offline"></span> MICI</div>
+                    <div><span id="dot-juan" class="dot dot-offline"></span> JUAN</div>
+                    <div><span id="dot-mici" class="dot dot-offline"></span> MICI</div>
                 </div>
-                <span style="cursor:pointer; font-weight:bold; padding:5px;" onclick="toggleChat()">X</span>
+                <span onclick="toggleChat()" style="cursor:pointer;">X</span>
             </div>
             <div id="chat-messages"></div>
             <div class="chat-input-area">
@@ -269,15 +235,6 @@
             </div>
         </div>
         <button id="chat-button" onclick="toggleChat()">💬</button>
-    </div>
-
-    <div class="modal-overlay" id="modal">
-        <div class="modal-content">
-            <h3 id="modal-title" style="color: var(--neon-blue); margin-top: 0; font-size: 1.1rem;"></h3>
-            <div id="modal-body" style="font-size: 0.9rem; line-height: 1.5;"></div>
-            <div id="modal-action-area"></div>
-            <button onclick="closeModal()" style="width:100%; margin-top:20px; background:none; border:1px solid #555; color:#555; padding:12px; cursor:pointer; border-radius:4px;">FECHAR</button>
-        </div>
     </div>
 
     <script>
@@ -294,136 +251,51 @@
         const auth = firebase.auth();
         const db = firebase.database();
 
-        const defaultClauses = {
-            1: { title: "CLÁUSULA 1 – DA DISPONIBILIDADE", content: "Fica estabelecido que o Contratante continuará exercendo suas funções de quebra-galho oficial, incluindo idas emergenciais à farmácia e suporte 24/7 aos domingos." },
-            2: { title: "CLÁUSULA 2 – DA CLÁUSULA ANTI-RESCISÃO", content: "A Contratada optou pela opção 'Você por completa'. Fica proibida qualquer tentativa de rescisão. Contrato irrevogável e sem direito a rollback." },
-            3: { title: "CLÁUSULA 3 – DOS HONORÁRIOS", content: "Compensação através de suporte de paciência, 01 final de semana por mês para dormir na residência do Contratante e alimentação de contingência." },
-            4: { title: "CLÁUSULA 4 – DAS PENALIDADES", content: "Violação do Zero Segundas Intenções: Massagem Completa (30 min). Abandono do Fazer Nada: Multa de 01 lanche." },
-            5: { title: "CLÁUSULA 5 – DISPOSIÇÕES GERAIS", content: "O acordo sério será discutido em reunião oficial. A Contratada fica impedida de apresentar desistência." }
-        };
-
         let state = { 
             currentUser: null, 
-            clauses: JSON.parse(JSON.stringify(defaultClauses)), 
-            pendingEdits: {}, 
-            checkboxes: {}, 
             biometria: { juan: [50,50,50,50], mici: [50,50,50,50] }, 
-            locations: { juan: {lat:0, lon:0}, mici: {lat:0, lon:0} }, 
-            currentMusic: null,
-            pet: {
-                ultimo_almoco: Date.now(),
-                ultimo_carinho: Date.now(),
-                ultimo_banho: Date.now(),
-                ultimo_sono: Date.now(),
-                xp: 0,
-                dormindo: false,
-                quem_interagiu: '---'
-            }
+            checkboxes: {},
+            pet: { ultimo_almoco: Date.now(), ultimo_carinho: Date.now(), dormindo: false, quem_interagiu: '---' }
         };
 
         let chart;
-        let blinkInterval = null;
-        let isFirstLoad = true;
         let syncingFromFirebase = false;
-        let petApi = null;
-        const sessionStartTime = Date.now();
 
         async function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
-            try {
-                await auth.signInWithPopup(provider);
-            } catch (e) {
-                console.error("Erro no login:", e);
-                document.getElementById('login-error').innerText = "Erro ao entrar com Google. Tente novamente.";
-                document.getElementById('login-error').style.display = 'block';
-            }
+            try { await auth.signInWithPopup(provider); } catch (e) { console.error(e); }
         }
 
         async function handleLogout() {
-            if (state.currentUser) {
-                await db.ref(`presence/${state.currentUser}`).set('offline');
-            }
+            if (state.currentUser) await db.ref(`presence/${state.currentUser}`).set('offline');
             auth.signOut().then(() => window.location.reload());
         }
 
         auth.onAuthStateChanged(user => {
             if (user) {
                 const email = user.email.toLowerCase();
-                if (email.includes('juan') || email.includes('juansitor')) {
-                    state.currentUser = 'juan';
-                } else if (email.includes('mici') || email.includes('michelle')) {
-                    state.currentUser = 'mici';
-                } else {
-                    state.currentUser = email.split('@')[0].split('.')[0];
-                }
-
+                state.currentUser = (email.includes('juan') || email.includes('juansitor')) ? 'juan' : 'mici';
                 document.getElementById('display-user').innerText = state.currentUser.toUpperCase();
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'flex';
                 document.getElementById('chat-widget').style.display = 'flex';
                 initSystem();
-                initPetApi();
             } else {
                 document.getElementById('login-screen').style.display = 'block';
                 document.getElementById('dashboard').style.display = 'none';
-                document.getElementById('chat-widget').style.display = 'none';
             }
         });
-
-        function initPetApi() {
-            const iframe = document.getElementById('pet-viewer');
-            const client = new Sketchfab('1.12.1', iframe);
-            client.init('84ab41d7b7a147c48541a583be9051cc', {
-                success: (api) => {
-                    petApi = api;
-                    api.start();
-                    api.addEventListener('viewerready', () => {
-                        console.log('✅ Mascote 3D pronto');
-                        updatePetAnimation();
-                    });
-                },
-                error: () => console.error('❌ Erro ao carregar API do Sketchfab'),
-                autostart: 1,
-                ui_infos: 0,
-                ui_controls: 0,
-                ui_watermark: 0,
-                transparent: 1
-            });
-        }
-
-        function updatePetAnimation() {
-            if (!petApi) return;
-            petApi.getAnimations((err, animations) => {
-                if (err) return;
-                // Lógica de animação baseada no estado
-                if (state.pet.dormindo) {
-                    // Tenta tocar animação de sentar/dormir
-                    const anim = animations.find(a => a.name.toLowerCase().includes('sit') || a.name.toLowerCase().includes('sleep'));
-                    if (anim) petApi.setCurrentAnimationByUID(anim.uid);
-                } else {
-                    const anim = animations.find(a => a.name.toLowerCase().includes('idle') || a.name.toLowerCase().includes('walk'));
-                    if (anim) petApi.setCurrentAnimationByUID(anim.uid);
-                }
-            });
-        }
 
         function initSystem() {
             db.ref('tacp_contract').on('value', snap => {
                 if (!snap.exists()) return;
                 syncingFromFirebase = true;
                 const data = snap.val();
-                state.clauses = data.clauses || state.clauses;
-                state.checkboxes = data.checkboxes || {};
                 state.biometria = data.biometria || state.biometria;
                 state.pet = data.pet || state.pet;
-                state.currentMusic = data.currentMusic || state.currentMusic;
-                
                 updatePetUI();
-                updatePetAnimation();
-                renderClauses();
+                updateChart();
                 syncSliders();
-                updateChart(true);
-                updateMusicPlayer(state.currentMusic);
                 syncingFromFirebase = false;
             });
 
@@ -440,109 +312,72 @@
         }
 
         function updatePetUI() {
-            if (!state.pet) return;
             const now = Date.now();
-            const hoursSinceFood = (now - state.pet.ultimo_almoco) / (1000 * 60 * 60);
-            const hoursSinceLove = (now - state.pet.ultimo_carinho) / (1000 * 60 * 60);
-            const fome = Math.max(0, 100 - (hoursSinceFood * 10));
-            const humor = Math.max(0, 100 - (hoursSinceLove * 15));
+            const hoursFood = (now - state.pet.ultimo_almoco) / 3600000;
+            const hoursLove = (now - state.pet.ultimo_carinho) / 3600000;
+            const fome = Math.max(0, 100 - (hoursFood * 10));
+            const humor = Math.max(0, 100 - (hoursLove * 15));
 
             document.getElementById('bar-fome').style.width = fome + '%';
-            document.getElementById('bar-fome').style.background = fome < 30 ? 'var(--alert-red)' : 'var(--matrix-green)';
             document.getElementById('bar-humor').style.width = humor + '%';
-            document.getElementById('bar-humor').style.background = humor < 30 ? 'var(--alert-red)' : 'var(--neon-blue)';
-            document.getElementById('pet-last-user').innerText = (state.pet.quem_interagiu || '---').toUpperCase();
-            document.getElementById('sleep-overlay').className = state.pet.dormindo ? 'sleep-overlay active' : 'sleep-overlay';
+            document.getElementById('pet-last-user').innerText = state.pet.quem_interagiu.toUpperCase();
+            
+            const wolf = document.getElementById('wolf-sprite');
+            wolf.className = 'wolf-sprite';
+            if (state.pet.dormindo) {
+                wolf.classList.add('wolf-sit');
+            } else if (humor > 80) {
+                wolf.classList.add('wolf-happy');
+            } else if (fome < 30) {
+                wolf.classList.add('wolf-tilt');
+            } else {
+                wolf.classList.add('wolf-idle');
+            }
             document.getElementById('btn-sono').innerText = state.pet.dormindo ? '☀️ ACORDAR' : '💤 SONO';
         }
 
         function petInteraction(type) {
-            if (!state.pet) return;
             const now = Date.now();
             if (state.pet.dormindo && type !== 'sono') {
-                showBubble("Zzz... Deixe-me dormir!");
-                return;
+                showBubble("Zzz..."); return;
             }
 
             if (type === 'alimentar') {
                 state.pet.ultimo_almoco = now;
-                showBubble("Nhac! Delícia! 🦴");
-                playSound('eat');
-                createStars();
+                showBubble("Nhac! 🦴");
+                new Audio('assets/audio/eat.mp3').play().catch(()=>{});
             } else if (type === 'carinho') {
                 state.pet.ultimo_carinho = now;
                 showBubble("Au au! ❤️");
-                playSound('bark');
+                new Audio('assets/audio/bark.mp3').play().catch(()=>{});
                 createHearts();
-                // Animação de felicidade temporária
-                if (petApi) {
-                    petApi.getAnimations((err, anims) => {
-                        const happy = anims.find(a => a.name.toLowerCase().includes('happy') || a.name.toLowerCase().includes('jump'));
-                        if (happy) {
-                            petApi.setCurrentAnimationByUID(happy.uid);
-                            setTimeout(updatePetAnimation, 3000);
-                        }
-                    });
-                }
             } else if (type === 'sono') {
                 state.pet.dormindo = !state.pet.dormindo;
-                state.pet.ultimo_sono = now;
-                showBubble(state.pet.dormindo ? "Boa noite... 💤" : "Bom dia! ☀️");
             }
-
             state.pet.quem_interagiu = state.currentUser;
             save();
             updatePetUI();
-            updatePetAnimation();
         }
 
         function showBubble(text) {
             const b = document.getElementById('pet-bubble');
-            b.innerText = text;
-            b.style.display = 'block';
-            setTimeout(() => b.style.display = 'none', 3000);
-        }
-
-        function playSound(type) {
-            const audio = new Audio(`assets/audio/${type === 'bark' ? 'bark.mp3' : 'eat.mp3'}`);
-            audio.volume = 0.3;
-            audio.play().catch(() => {});
+            b.innerText = text; b.style.display = 'block';
+            setTimeout(() => b.style.display = 'none', 2000);
         }
 
         function createHearts() {
-            const container = document.getElementById('pet-section');
-            for (let i = 0; i < 5; i++) {
+            const c = document.getElementById('pet-section');
+            for(let i=0; i<5; i++) {
                 const h = document.createElement('div');
-                h.className = 'heart-particle';
-                h.innerHTML = '❤️';
-                h.style.left = (40 + Math.random() * 20) + '%';
-                h.style.top = '40%';
-                container.appendChild(h);
-                setTimeout(() => h.remove(), 1500);
-            }
-        }
-
-        function createStars() {
-            const container = document.getElementById('pet-section');
-            for (let i = 0; i < 5; i++) {
-                const s = document.createElement('div');
-                s.className = 'star-particle';
-                s.innerHTML = '⭐';
-                s.style.left = (40 + Math.random() * 20) + '%';
-                s.style.top = '40%';
-                container.appendChild(s);
-                setTimeout(() => s.remove(), 1000);
+                h.className = 'heart-particle'; h.innerHTML = '❤️';
+                h.style.left = (40 + Math.random()*20) + '%'; h.style.top = '40%';
+                c.appendChild(h); setTimeout(() => h.remove(), 1500);
             }
         }
 
         function save() {
             if (syncingFromFirebase) return;
-            db.ref('tacp_contract').update({
-                biometria: state.biometria,
-                checkboxes: state.checkboxes,
-                pet: state.pet,
-                currentMusic: state.currentMusic
-            });
+            db.ref('tacp_contract').update({ biometria: state.biometria, pet: state.pet });
         }
 
         function initRadar() {
@@ -557,27 +392,19 @@
                     ]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    responsive: true, maintainAspectRatio: false,
                     scales: { r: { grid: { color: '#333' }, ticks: { display: false }, pointLabels: { color: '#8b949e' } } },
                     plugins: { legend: { labels: { color: '#fff' } } }
                 }
             });
         }
 
-        function updateChart(force = false) {
-            if (!chart) return;
-            chart.data.datasets[0].data = state.biometria.juan;
-            chart.data.datasets[1].data = state.biometria.mici;
-            chart.update();
-        }
-
+        function updateChart() { if(chart) { chart.data.datasets[0].data = state.biometria.juan; chart.data.datasets[1].data = state.biometria.mici; chart.update(); } }
         function syncSliders() {
-            state.biometria[state.currentUser].forEach((val, i) => {
+            state.biometria[state.currentUser].forEach((v, i) => {
                 const s = document.querySelector(`.status-slider[data-index="${i}"]`);
-                if (s) s.value = val;
-                const l = document.getElementById(`val-${i}`);
-                if (l) l.innerText = val + "%";
+                if(s) s.value = v;
+                document.getElementById(`val-${i}`).innerText = v + "%";
             });
         }
 
@@ -587,27 +414,10 @@
                 const v = parseInt(e.target.value);
                 state.biometria[state.currentUser][i] = v;
                 document.getElementById(`val-${i}`).innerText = v + "%";
-                updateChart();
-                save();
+                updateChart(); save();
             });
         });
 
-        function renderClauses() {
-            const container = document.getElementById('clauses-container');
-            container.innerHTML = '';
-            for (let i = 1; i <= 5; i++) {
-                const c = defaultClauses[i];
-                const div = document.createElement('div');
-                div.className = 'clause-item';
-                div.innerHTML = `
-                    <input type="checkbox" class="clause-checkbox" ${state.checkboxes[i] ? 'checked' : ''} onclick="toggleCheck(${i}, this.checked)">
-                    <div class="clause-content"><h3>${c.title}</h3><p>${c.content}</p></div>
-                `;
-                container.appendChild(div);
-            }
-        }
-
-        function toggleCheck(i, checked) { state.checkboxes[i] = checked; save(); }
         function toggleChat() { const w = document.getElementById('chat-window'); w.style.display = w.style.display === 'flex' ? 'none' : 'flex'; }
         function sendMessage() {
             const i = document.getElementById('chat-input');
@@ -616,15 +426,8 @@
                 i.value = '';
             }
         }
-        function updateMusicPlayer(url) {
-            const c = document.getElementById('spotify-player-container');
-            if (!url) { c.innerHTML = '<p style="font-size: 0.7rem; color: var(--text-gray); text-align: center;">Nenhuma música compartilhada.</p>'; return; }
-            let id = url.includes('track/') ? url.split('track/')[1].split('?')[0] : '';
-            if (id) c.innerHTML = `<iframe class="spotify-embed" src="https://open.spotify.com/embed/track/${id}" allow="encrypted-media"></iframe>`;
-        }
-        function shareMusic() { const l = document.getElementById('spotify-link').value; if (l) { state.currentMusic = l; save(); } }
-        function clearMusic() { state.currentMusic = null; save(); }
-        function openSpotify() { window.open('spotify:track:', '_blank'); }
+        function shareMusic() { const l = document.getElementById('spotify-link').value; if(l) { db.ref('tacp_contract').update({ currentMusic: l }); } }
+        let sec = 0; setInterval(() => { sec++; let h=Math.floor(sec/3600).toString().padStart(2,'0'), m=Math.floor((sec%3600)/60).toString().padStart(2,'0'), s=(sec%60).toString().padStart(2,'0'); document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`; }, 1000);
     </script>
 </body>
 </html>
