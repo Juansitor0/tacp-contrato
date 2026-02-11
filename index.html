@@ -16,6 +16,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
     <style>
         :root {
             --bg-color: #0a0b10;
@@ -110,24 +111,15 @@
         .pet-section { background: rgba(0, 0, 0, 0.4); border: 1px solid var(--neon-blue); border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
         .pet-container { width: 100%; height: 220px; position: relative; cursor: pointer; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid rgba(0, 210, 255, 0.2); }
         .pet-3d-embed { width: 100%; height: 100%; border: none; }
-        .pet-overlay-trigger { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; }
+        .pet-overlay-trigger { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
         
-        @keyframes pet-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-        @keyframes pet-tilt { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(15deg); } }
-        @keyframes pet-happy { from { transform: scale(1); } to { transform: scale(1.1); } }
-
         .pet-stats { width: 100%; display: flex; justify-content: space-around; margin-top: 10px; font-size: 0.65rem; color: var(--text-gray); }
         .pet-stat-item { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
         .pet-bar-bg { width: 100%; max-width: 60px; height: 6px; background: #222; border-radius: 3px; overflow: hidden; border: 1px solid #444; }
         .pet-bar-fill { height: 100%; width: 100%; transition: width 0.5s, background 0.5s; }
         
-        .pet-level-badge { position: absolute; top: 10px; left: 10px; background: var(--neon-blue); color: black; padding: 2px 8px; border-radius: 10px; font-size: 0.6rem; font-weight: bold; z-index: 10; box-shadow: 0 0 10px var(--neon-blue); }
-        .pet-xp-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: rgba(255,255,255,0.1); z-index: 10; }
-        .pet-xp-fill { height: 100%; width: 0%; background: var(--matrix-green); transition: width 0.3s; }
-
-        .pet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; width: 100%; }
-        
-        /* Efeitos Visuais */
+        .pet-level-badge { position: absolute; top: 10px; left: 10px; background: var(--neon-blue); color: black; padding: 2px 8px; border-radius: 10px; font-size: 0.6rem; font-weight: bold; z-index: 15; box-shadow: 0 0 10px var(--neon-blue); }
+        .pet-actions { display: flex; gap: 8px; margin-top: 15px; width: 100%; flex-wrap: wrap; }
         .bubble-particle { position: absolute; pointer-events: none; background: rgba(255,255,255,0.4); border: 1px solid white; border-radius: 50%; animation: bubble-float 2s forwards ease-out; z-index: 100; }
         @keyframes bubble-float { 0% { transform: translateY(0) scale(0.5); opacity: 1; } 100% { transform: translateY(-120px) scale(1.2); opacity: 0; } }
         
@@ -144,7 +136,7 @@
         .heart-particle { position: absolute; pointer-events: none; font-size: 20px; animation: heart-float 1.5s forwards ease-out; z-index: 100; }
         @keyframes heart-float { 0% { transform: translateY(0) scale(0); opacity: 1; } 100% { transform: translateY(-100px) scale(1.5); opacity: 0; } }
         
-        .pet-bubble { position: absolute; top: 10px; right: 10px; background: white; color: black; padding: 5px 10px; border-radius: 10px; font-size: 0.6rem; font-weight: bold; display: none; }
+        .pet-bubble { position: absolute; top: 10px; right: 10px; background: white; color: black; padding: 5px 10px; border-radius: 10px; font-size: 0.6rem; font-weight: bold; display: none; z-index: 20; }
         .pet-bubble::after { content: ''; position: absolute; bottom: -5px; left: 10px; border-width: 5px 5px 0; border-style: solid; border-color: white transparent; }
     </style>
 </head>
@@ -182,9 +174,14 @@
                     <div class="pet-bubble" id="pet-bubble">Au au! ❤️</div>
                     <div class="pet-container">
                         <div class="pet-overlay-trigger" onclick="petInteraction('carinho')"></div>
-                        <iframe title="Dog Puppy - Animated Minecraft Model" class="pet-3d-embed" 
-                            src="https://sketchfab.com/models/84ab41d7b7a147c48541a583be9051cc/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=0&ui_stop=0&ui_theatre=1&ui_watermark=0" 
+                        <iframe id="pet-viewer" title="Dog Puppy - Animated Minecraft Model" class="pet-3d-embed" 
+                            src="https://sketchfab.com/models/84ab41d7b7a147c48541a583be9051cc/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=0&ui_stop=0&ui_theatre=1&ui_watermark=0&transparent=1" 
                             allow="autoplay; fullscreen; xr-spatial-tracking"></iframe>
+                        <div class="sleep-overlay" id="sleep-overlay">
+                            <span class="z-particle" style="left:40%; top:40%; animation-delay:0s">Z</span>
+                            <span class="z-particle" style="left:50%; top:30%; animation-delay:1s">Z</span>
+                            <span class="z-particle" style="left:60%; top:45%; animation-delay:2s">Z</span>
+                        </div>
                     </div>
                     <div class="pet-stats">
                         <div class="pet-stat-item">
@@ -195,19 +192,10 @@
                             <span>HUMOR</span>
                             <div class="pet-bar-bg"><div id="bar-humor" class="pet-bar-fill"></div></div>
                         </div>
-                        <div class="pet-stat-item">
-                            <span>HIGIENE</span>
-                            <div class="pet-bar-bg"><div id="bar-higiene" class="pet-bar-fill"></div></div>
-                        </div>
-                        <div class="pet-stat-item">
-                            <span>ENERGIA</span>
-                            <div class="pet-bar-bg"><div id="bar-energia" class="pet-bar-fill"></div></div>
-                        </div>
                     </div>
                     <div class="pet-actions">
                         <button class="btn-pet" onclick="petInteraction('alimentar')">🦴 COMER</button>
                         <button class="btn-pet" onclick="petInteraction('carinho')">❤️ AMAR</button>
-                        <button class="btn-pet" onclick="petInteraction('banho')">🧼 BANHO</button>
                         <button class="btn-pet" id="btn-sono" onclick="petInteraction('sono')">💤 SONO</button>
                     </div>
                     <div id="pet-info" style="font-size: 0.5rem; color: var(--text-gray); margin-top: 10px; text-align: center;">
@@ -246,7 +234,7 @@
                         <div class="status-control"><div class="status-label-row"><span>PACIÊNCIA </span><span id="val-1">50%</span></div><input type="range" class="status-slider" data-index="1" min="0" max="100"></div>
                         <div class="status-control"><div class="status-label-row"><span>TRISTEZA </span><span id="val-2">50%</span></div><input type="range" class="status-slider" data-index="2" min="0" max="100"></div>
                         <div class="status-control"><div class="status-label-row"><span>FELICIDADE </span><span id="val-3">50%</span></div><input type="range" class="status-slider" data-index="3" min="0" max="100"></div>
-                            </div>
+                    </div>
                 </div>
                 <div class="expandable-section" id="expandable-notif" style="margin-top:10px;">
                     <div class="expandable-header"><span>NOTIFICAÇÕES</span><span>▼</span></div>
@@ -319,7 +307,7 @@
             clauses: JSON.parse(JSON.stringify(defaultClauses)), 
             pendingEdits: {}, 
             checkboxes: {}, 
-            biometria: { juan: [50,50,50,50,100], mici: [50,50,50,50,100] }, 
+            biometria: { juan: [50,50,50,50], mici: [50,50,50,50] }, 
             locations: { juan: {lat:0, lon:0}, mici: {lat:0, lon:0} }, 
             currentMusic: null,
             pet: {
@@ -336,13 +324,9 @@
         let chart;
         let blinkInterval = null;
         let isFirstLoad = true;
-        let avisouProximidade = false;
-        let alertaBiometriaAtivo = false;
         let syncingFromFirebase = false;
-
+        let petApi = null;
         const sessionStartTime = Date.now();
-
-       
 
         async function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -362,38 +346,14 @@
             auth.signOut().then(() => window.location.reload());
         }
 
-        function requestNotifPermission() {
-            if ("Notification" in window) {
-                if (Notification.permission === 'default') {
-                    Notification.requestPermission().then(permission => {
-                        if (permission === "granted") {
-                            alert("✅ Notificações ativadas com sucesso!");
-                            // Testar notificação
-                            triggerNotification('🔔 TACP Ativo', 'Você receberá notificações de atualizações importantes.');
-                        } else if (permission === "denied") {
-                            alert("⚠️ Notificações bloqueadas. Para ativar, acesse as configurações do navegador.");
-                        }
-                    });
-                } else if (Notification.permission === 'granted') {
-                    alert("✅ Notificações já estão ativas!");
-                } else {
-                    alert("⚠️ Notificações bloqueadas. Acesse as configurações do navegador para permitir.");
-                }
-            } else {
-                alert("❌ Seu navegador não suporta notificações.");
-            }
-        }
-
         auth.onAuthStateChanged(user => {
             if (user) {
-                // Mapeamento de e-mails para identificar Juan e Mici
                 const email = user.email.toLowerCase();
                 if (email.includes('juan') || email.includes('juansitor')) {
                     state.currentUser = 'juan';
                 } else if (email.includes('mici') || email.includes('michelle')) {
                     state.currentUser = 'mici';
                 } else {
-                    // Fallback para o primeiro nome do e-mail se não for um dos dois
                     state.currentUser = email.split('@')[0].split('.')[0];
                 }
 
@@ -402,11 +362,7 @@
                 document.getElementById('dashboard').style.display = 'flex';
                 document.getElementById('chat-widget').style.display = 'flex';
                 initSystem();
-                
-                // Registra o FCM após garantir que o usuário está logado
-                if (Notification.permission === 'granted') {
-                    registrarFCM();
-                }
+                initPetApi();
             } else {
                 document.getElementById('login-screen').style.display = 'block';
                 document.getElementById('dashboard').style.display = 'none';
@@ -414,98 +370,62 @@
             }
         });
 
-        function initSystem() {
-            const presenceRef = db.ref(`.info/connected`);
-            presenceRef.on('value', snap => {
-                if (snap.val() === true) {
-                    const con = db.ref(`presence/${state.currentUser}`);
-                    con.onDisconnect().set('offline');
-                    con.set('online');
+        function initPetApi() {
+            const iframe = document.getElementById('pet-viewer');
+            const client = new Sketchfab('1.12.1', iframe);
+            client.init('84ab41d7b7a147c48541a583be9051cc', {
+                success: (api) => {
+                    petApi = api;
+                    api.start();
+                    api.addEventListener('viewerready', () => {
+                        console.log('✅ Mascote 3D pronto');
+                        updatePetAnimation();
+                    });
+                },
+                error: () => console.error('❌ Erro ao carregar API do Sketchfab'),
+                autostart: 1,
+                ui_infos: 0,
+                ui_controls: 0,
+                ui_watermark: 0,
+                transparent: 1
+            });
+        }
+
+        function updatePetAnimation() {
+            if (!petApi) return;
+            petApi.getAnimations((err, animations) => {
+                if (err) return;
+                // Lógica de animação baseada no estado
+                if (state.pet.dormindo) {
+                    // Tenta tocar animação de sentar/dormir
+                    const anim = animations.find(a => a.name.toLowerCase().includes('sit') || a.name.toLowerCase().includes('sleep'));
+                    if (anim) petApi.setCurrentAnimationByUID(anim.uid);
+                } else {
+                    const anim = animations.find(a => a.name.toLowerCase().includes('idle') || a.name.toLowerCase().includes('walk'));
+                    if (anim) petApi.setCurrentAnimationByUID(anim.uid);
                 }
             });
-            db.ref('presence').on('value', snap => {
-                const p = snap.val() || {};
-                document.getElementById('dot-juan').className = `dot ${p.juan === 'online' ? 'dot-online' : 'dot-offline'}`;
-                document.getElementById('dot-mici').className = `dot ${p.mici === 'online' ? 'dot-online' : 'dot-offline'}`;
-            });
+        }
 
+        function initSystem() {
             db.ref('tacp_contract').on('value', snap => {
                 if (!snap.exists()) return;
-
                 syncingFromFirebase = true;
-
                 const data = snap.val();
-
                 state.clauses = data.clauses || state.clauses;
-                state.pendingEdits = data.pendingEdits || {};
                 state.checkboxes = data.checkboxes || {};
-                state.locations = data.locations || state.locations;
+                state.biometria = data.biometria || state.biometria;
                 state.pet = data.pet || state.pet;
-
-                const safeBiometria = data.biometria || {};
-
-                state.biometria = {
-                    juan: Array.isArray(safeBiometria.juan)
-                        ? safeBiometria.juan
-                        : [50, 50, 50, 50],
-
-                    mici: Array.isArray(safeBiometria.mici)
-                        ? safeBiometria.mici
-                        : [50, 50, 50, 50]
-                };
-
                 state.currentMusic = data.currentMusic || state.currentMusic;
+                
                 updatePetUI();
-
-               // 🔔 ALERTAS (Juan monitora Mici)
-                if (state.currentUser === 'juan') {
-                    const bio = state.biometria.mici;
-                    const labels = ['Fome', 'Paciência', 'Tristeza', 'Felicidade'];
-                    let nivelCriticoGlobal = false;
-
-                    bio.forEach((val, i) => {
-                        const isCritical =
-                            (labels[i] === 'Paciência' || labels[i] === 'Felicidade')
-                            ? val < 20
-                            : val > 80;
-
-                        if (isCritical) nivelCriticoGlobal = true;
-                    });
-
-                    // 🎯 EFEITO VISUAL
-                    document.getElementById('radarChart').style.boxShadow =
-                        nivelCriticoGlobal ? '0 0 25px var(--alert-red)' : 'none';
-
-
-                    // 🔔 NOTIFICAÇÃO (ADICIONAR AQUI 👇)
-                    if (nivelCriticoGlobal && !alertaBiometriaAtivo) {
-                        triggerNotification(
-                            '⚠️ BIOMETRIA CRÍTICA',
-                            'Níveis emocionais da Mici estão fora do padrão.'
-                        );
-                        alertaBiometriaAtivo = true;
-                    }
-
-                    if (!nivelCriticoGlobal) {
-                        alertaBiometriaAtivo = false;
-                    }
-                }
-
+                updatePetAnimation();
                 renderClauses();
                 syncSliders();
                 updateChart(true);
-                updateDeployButton();
                 updateMusicPlayer(state.currentMusic);
-                atualizarDistancia();
-
                 syncingFromFirebase = false;
-                isFirstLoad = false;
             });
-
-
-                    
-
-                   
 
             db.ref('chat').on('child_added', snap => {
                 const m = snap.val();
@@ -515,494 +435,35 @@
                 div.innerHTML = `<span style="font-size:0.6rem; font-weight:bold; display:block; color:var(--neon-blue);">${m.user.toUpperCase()}</span>${m.text}`;
                 container.appendChild(div);
                 container.scrollTop = container.scrollHeight;
-                
-                if (m.time > sessionStartTime && m.user !== state.currentUser) {
-                    triggerNotification(`💬 ${m.user.toUpperCase()}`, m.text);
-                }
             });
-
-            initRadar(); 
-            updateChart(true);
-            iniciarGPS();
+            initRadar();
         }
 
-        function triggerNotification(title, body) {
-             // Piscar aba
-            if (document.getElementById('notif-blink')?.checked) {
-                if (blinkInterval) clearInterval(blinkInterval);
-                const originalTitle = document.title;
-                let isAlert = false;
-
-                blinkInterval = setInterval(() => {
-                    document.title = isAlert ? `⚠️ ${title}` : originalTitle;
-                    isAlert = !isAlert;
-                }, 1000);
-
-                setTimeout(() => {
-                    clearInterval(blinkInterval);
-                    document.title = originalTitle;
-                }, 10000);
-            }
-
-            // Vibração
-            if (document.getElementById('notif-vibrate')?.checked && navigator.vibrate) {
-                try {
-                    // ✅ CORREÇÃO: Evita erro se o usuário ainda não interagiu com a página
-                    navigator.vibrate([200, 100, 200]);
-                } catch (e) {
-                    console.warn('⚠️ Vibração bloqueada: aguardando interação do usuário.');
-                }
-            }
-
-            // ✅ CORREÇÃO: Criar notificação nativa do sistema
-            if ('Notification' in window && Notification.permission === 'granted') {
-                try {
-                    const notification = new Notification(title, {
-                        body: body,
-                        icon: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
-                        badge: 'https://cdn-icons-png.flaticon.com/512/1182/1182761.png',
-                        tag: 'tacp-local-notification',
-                        requireInteraction: false,
-                        vibrate: [200, 100, 200]
-                    });
-                    
-                    // Focar na janela quando clicar na notificação
-                    notification.onclick = function() {
-                        window.focus();
-                        notification.close();
-                    };
-                    
-                    // Fechar automaticamente após 10 segundos
-                    setTimeout(() => notification.close(), 10000);
-                } catch (e) {
-                    console.error('❌ Erro ao criar notificação:', e);
-                    // Fallback para alert se as notificações falharem e for importante
-                    if (title.includes('CRÍTICA')) alert(`${title}\n${body}`);
-                }
-            } else if ('Notification' in window && Notification.permission === 'default') {
-                // Se ainda não pediu permissão, tenta pedir agora (fallback)
-                Notification.requestPermission();
-            }
-        }
-        function syncSliders() {
-            state.biometria[state.currentUser].forEach((val, i) => {
-                const slider = document.querySelector(`.status-slider[data-index="${i}"]`);
-                if(slider) slider.value = val;
-                const label = document.getElementById(`val-${i}`);
-                if(label) label.innerText = val + "%";
-            });
-        }
-
-        function sendMessage() {
-            const input = document.getElementById('chat-input');
-            if (input.value.trim()) {
-                db.ref('chat').push({ user: state.currentUser, text: input.value, time: Date.now() });
-                input.value = '';
-            }
-        }
-
-        function toggleChat() {
-            const win = document.getElementById('chat-window');
-            win.style.display = win.style.display === 'flex' ? 'none' : 'flex';
-            if (win.style.display === 'flex') {
-                const container = document.getElementById('chat-messages');
-                container.scrollTop = container.scrollHeight;
-            }
-        }
-
-        function renderClauses() {
-            const container = document.getElementById('clauses-container');
-            container.innerHTML = '';
-            for (let i = 1; i <= 5; i++) {
-                const c = state.clauses[i] || defaultClauses[i];
-                const hasEdit = state.pendingEdits[i];
-                const div = document.createElement('div');
-                div.className = `clause-item ${hasEdit ? 'pending-edit' : ''}`;
-                div.innerHTML = `
-                    <input type="checkbox" class="clause-checkbox" ${state.checkboxes[i] ? 'checked' : ''} onclick="event.stopPropagation(); toggleCheck(${i}, this.checked)">
-                    <div class="clause-content" onclick="openModal(${i})">
-                        <h3>${c.title} ${hasEdit ? '<span style="background:var(--warning-yellow); color:#000; font-size:0.6rem; padding:2px 5px; border-radius:3px; margin-left:5px; font-weight:bold;">PENDENTE</span>' : ''}</h3>
-                        <p>${c.content.substring(0, 80)}...</p>
-                    </div>
-                `;
-                container.appendChild(div);
-            }
-        }
-
-        window.toggleCheck = (i, checked) => { state.checkboxes[i] = checked; save(); };
-        let saveTimeout;
-
-        function save() {
-            if (syncingFromFirebase) return;
-
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(() => {
-                db.ref('tacp_contract').update({
-                    biometria: state.biometria,
-                    clauses: state.clauses,
-                    pendingEdits: state.pendingEdits,
-                    checkboxes: state.checkboxes,
-                    locations: state.locations,
-                    currentMusic: state.currentMusic
-                });
-            }, 400);
-}
-
-        
-        function shareMusic() {
-            const linkInput = document.getElementById('spotify-link');
-            let link = linkInput.value.trim();
-            
-            if (!link) {
-                alert('⚠️ Por favor, cole um link do Spotify primeiro.');
-                return;
-            }
-            
-            if (link.includes('spotify.com')) {
-                let embedUrl = "";
-                let contentType = "conteúdo";
-                
-                try {
-                    // Remove parâmetros de busca para limpar o link
-                    const cleanLink = link.split('?')[0];
-                    
-                    // Suporta links como:
-                    // https://open.spotify.com/track/ID
-                    // https://open.spotify.com/intl-pt/track/ID
-                    // https://open.spotify.com/playlist/ID
-                    // https://open.spotify.com/album/ID
-                    
-                    // ✅ CORREÇÃO: Regex mais robusta para capturar o ID corretamente, ignorando o que vem depois
-                    const trackMatch = link.match(/track\/([a-zA-Z0-9]+)/);
-                    const playlistMatch = link.match(/playlist\/([a-zA-Z0-9]+)/);
-                    const albumMatch = link.match(/album\/([a-zA-Z0-9]+)/);
-                    const artistMatch = link.match(/artist\/([a-zA-Z0-9]+)/);
-
-                    if (trackMatch) {
-                        embedUrl = `https://open.spotify.com/embed/track/${trackMatch[1]}`;
-                        contentType = "música";
-                    } else if (playlistMatch) {
-                        embedUrl = `https://open.spotify.com/embed/playlist/${playlistMatch[1]}`;
-                        contentType = "playlist";
-                    } else if (albumMatch) {
-                        embedUrl = `https://open.spotify.com/embed/album/${albumMatch[1]}`;
-                        contentType = "álbum";
-                    } else if (artistMatch) {
-                        embedUrl = `https://open.spotify.com/embed/artist/${artistMatch[1]}`;
-                        contentType = "artista";
-                    } else {
-                        throw new Error("Tipo de link não suportado ou inválido");
-                    }
-
-                    state.currentMusic = embedUrl;
-                    save();
-                    linkInput.value = '';
-                    
-                    // Feedback visual
-                    linkInput.style.borderColor = 'var(--matrix-green)';
-                    setTimeout(() => { linkInput.style.borderColor = '#30363d'; }, 1000);
-                    
-                    db.ref('chat').push({ 
-                        user: 'system', 
-                        text: `🎵 ${state.currentUser.toUpperCase()} compartilhou uma nova ${contentType}!`, 
-                        time: Date.now() 
-                    });
-                    
-                    // Notificação de sucesso
-                    triggerNotification('🎶 Música Compartilhada', `Você compartilhou uma ${contentType} do Spotify!`);
-                    
-                } catch (e) {
-                    linkInput.style.borderColor = 'var(--alert-red)';
-                    setTimeout(() => { linkInput.style.borderColor = '#30363d'; }, 2000);
-                    alert('❌ Erro ao processar o link. Certifique-se de que é um link válido do Spotify (música, playlist ou álbum).');
-                }
-            } else {
-                linkInput.style.borderColor = 'var(--alert-red)';
-                setTimeout(() => { linkInput.style.borderColor = '#30363d'; }, 2000);
-                alert('❌ Por favor, insira um link válido do Spotify (deve conter "spotify.com").');
-            }
-        }
-
-        let lastMusicUrl = "";
-        function updateMusicPlayer(url) {
-            const container = document.getElementById('spotify-player-container');
-            if (!container) return;
-            
-            if (url === lastMusicUrl) return;
-            lastMusicUrl = url;
-
-            if (url) {
-                // ✅ CORREÇÃO: Adicionado sandbox e parâmetros de origem para evitar 404 no PWA
-                const origin = window.location.origin;
-                const finalUrl = url.includes('?') ? `${url}&utm_source=generator&origin=${origin}` : `${url}?utm_source=generator&origin=${origin}`;
-                
-                container.innerHTML = `<iframe 
-                    class="spotify-embed" 
-                    src="${finalUrl}" 
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-                    sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
-                    loading="lazy"></iframe>`;
-            } else {
-                container.innerHTML = '<p style="font-size: 0.7rem; color: var(--text-gray); text-align: center;">Nenhuma música compartilhada ainda.</p>';
-            }
-        }
-
-        function openSpotify() {
-            window.open('https://open.spotify.com/', '_blank');
-        }
-
-        function playRandomMusic() {
-            // ✅ CORREÇÃO: IDs atualizados e formato garantido
-            const playlistIds = [
-                '4u7EnebtmSjSgoH0G2o3mC', // Never Gonna Give You Up
-                '7qiZfU4BZZPmUAFJj68nu3', // Shape of You
-                '0VjIjS4nGhc3A7uI68URbA', // Blinding Lights
-                '27SdWb2rFzO6GWiYDBpt0D', // Flowers
-                '59NraMJsLaMCVbz1BebT2y', // As It Was
-                '6X0V1u1BJu7cZub7J6vUrW', // Cruel Summer
-                '1BxfuS2JvJJ6vMhC6cyPja', // Nightcall
-                '37SNoSST799vY6YpXp9I7v', // Starboy
-                '2CH79p7Y904X1Y3v6825pS', // Moonlight
-                '09mEucvSqV31v9uccjsGqb'  // Circles
-            ];
-            
-            let randomId;
-            const currentId = state.currentMusic ? state.currentMusic.split('/').pop() : null;
-            
-            do {
-                randomId = playlistIds[Math.floor(Math.random() * playlistIds.length)];
-            } while (randomId === currentId && playlistIds.length > 1);
-
-            const randomUrl = `https://open.spotify.com/embed/track/${randomId}`;
-            state.currentMusic = randomUrl;
-            
-            updateMusicPlayer(randomUrl);
-            save();
-            
-            db.ref('chat').push({ 
-                user: 'system', 
-                text: `🎲 ${state.currentUser.toUpperCase()} escolheu uma música aleatória!`, 
-                time: Date.now() 
-            });
-            
-            triggerNotification('🎲 Música Aleatória', 'Uma música surpresa foi selecionada!');
-        }
-
-        function clearMusic() {
-            if (confirm('❌ Tem certeza que deseja remover a música atual?')) {
-                state.currentMusic = '';
-                save();
-                updateMusicPlayer('');
-                db.ref('chat').push({ 
-                    user: 'system', 
-                    text: `🔇 ${state.currentUser.toUpperCase()} removeu a música.`, 
-                    time: Date.now() 
-                });
-            }
-        }
-
-        function openModal(i) {
-            const c = state.clauses[i] || defaultClauses[i];
-            const hasEdit = state.pendingEdits[i];
-            document.getElementById('modal-title').innerText = c.title;
-            document.getElementById('modal-body').innerText = c.content;
-            const area = document.getElementById('modal-action-area');
-            area.innerHTML = '';
-            if (state.currentUser === 'mici') {
-                area.innerHTML = `<textarea id="edit-tx">${hasEdit || c.content}</textarea><button onclick="propose(${i})" style="width:100%; margin-top:10px; background:var(--neon-blue); border:none; padding:15px; cursor:pointer; font-weight:bold; border-radius:4px;">PROPOR EDIÇÃO</button>`;
-            } else if (state.currentUser === 'juan' && hasEdit) {
-                area.innerHTML = `<div style="border:1px solid var(--warning-yellow); padding:15px; font-size:0.8rem; margin-top:15px; border-radius:4px;"><p style="color:var(--warning-yellow); margin-top:0;">PROPOSTA DA MICI:</p><i>"${hasEdit}"</i><div style="display:flex; gap:10px; margin-top:15px;"><button onclick="approve(${i})" style="flex:1; background:var(--matrix-green); border:none; padding:12px; cursor:pointer; border-radius:4px; font-weight:bold;">ACEITAR</button><button onclick="reject(${i})" style="flex:1; background:var(--alert-red); border:none; padding:12px; cursor:pointer; border-radius:4px; font-weight:bold;">RECUSAR</button></div></div>`;
-            }
-            document.getElementById('modal').classList.add('active');
-        }
-
-        window.closeModal = () => document.getElementById('modal').classList.remove('active');
-        window.propose = (i) => { const val = document.getElementById('edit-tx').value; if(val.trim()){ state.pendingEdits[i] = val; save(); closeModal(); } };
-        window.approve = (i) => {
-                        state.clauses[i].content = state.pendingEdits[i]; 
-                delete state.pendingEdits[i]; 
-                save(); 
-                // Notifica a Mici que o Juan aprovou
-                db.ref('chat').push({ 
-                    user: 'system', 
-                    text: `✅ CLÁUSULA ${i} APROVADA PELO CONTRATANTE.`, 
-                    time: Date.now()
-                });
-                closeModal();
-        };
-
-        window.reject = (i) => { 
-            delete state.pendingEdits[i]; 
-             save(); 
-            // Notifica a Mici que o Juan recusou
-            db.ref('chat').push({ 
-                user: 'system', 
-                text: `❌ PROPOSTA DE EDIÇÃO DA CLÁUSULA ${i} FOI REJEITADA.`, 
-                time: Date.now() 
-            });
-            closeModal();
-                    
-         };
-
-        function iniciarGPS() { 
-            if(navigator.geolocation) {
-                navigator.geolocation.watchPosition(
-                    p => { 
-                        state.locations[state.currentUser] = {lat: p.coords.latitude, lon: p.coords.longitude}; 
-                        save(); 
-                    }, 
-                    error => {
-                        console.error('❌ Erro ao obter localização:', error);
-                        if (error.code === error.PERMISSION_DENIED) {
-                            console.warn('⚠️ Permissão de localização negada pelo usuário.');
-                        }
-                    }, 
-                    {enableHighAccuracy:true, timeout: 10000, maximumAge: 0}
-                );
-            } else {
-                console.error('❌ Geolocalizacão não suportada neste navegador.');
-            }
-        }
-
-        
-        function atualizarDistancia() {
-            const l1 = state.locations.juan, l2 = state.locations.mici;
-            if(l1.lat && l2.lat) {
-                const R = 6371; 
-                const dLat = (l2.lat-l1.lat)*Math.PI/180;
-                const dLon = (l2.lon-l1.lon)*Math.PI/180;
-                const a = Math.sin(dLat/2)**2 + Math.cos(l1.lat*Math.PI/180)*Math.cos(l2.lat*Math.PI/180)*Math.sin(dLon/2)**2;
-                const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-                const disText = d < 1 ? (d*1000).toFixed(0) + ' m' : d.toFixed(2) + ' km';
-                document.getElementById('distancia-val').innerText = disText;
-
-                if(d < 0.2 && !avisouProximidade){
-                    triggerNotification('📍 PROXIMIDADE', 'Unidade detectada a menos de 200m!');
-                    avisouProximidade = true;
-                } else if(d > 0.5){
-                    avisouProximidade = false; 
-                }
-            }
-        }
-
-        function initRadar() {
-            if (chart) chart.destroy();
-            const ctx = document.getElementById('radarChart').getContext('2d');
-            chart = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: ['Fome', 'Paciência', 'Tristeza', 'Felicidade'],
-                    datasets: [
-                        {
-                            label: 'Juan',
-                            data: state.biometria.juan.slice(0,4),
-                            borderColor:'#00ff41',
-                            backgroundColor:'rgba(0,255,65,0.1)'
-                        },
-                        {
-                            label: 'Mici',
-                            data: state.biometria.mici.slice(0,4),
-                            borderColor:'#00d2ff',
-                            backgroundColor:'rgba(0,210,255,0.1)'
-                        }
-                    ]
-                },
-                options: {
-                    responsive:true,
-                    maintainAspectRatio:false,
-                    scales:{
-                        r:{
-                            grid:{color:'#333'},
-                            ticks:{display:false},
-                            pointLabels:{color:'#8b949e', font:{size:11}}
-                        }
-                    },
-                    plugins:{
-                        legend:{labels:{color:'#fff', font:{size:11}}}
-                    }
-                }
-            });
-        }
-
-       function updateChart(force = false) {
-            if (!chart) return;
-
-            chart.data.datasets[0].data = [...(state.biometria.juan || [50,50,50,50])].slice(0,4);
-            chart.data.datasets[1].data = [...(state.biometria.mici || [50,50,50,50])].slice(0,4);
-
-            chart.update(force ? 'none' : undefined);
-        }
-                        
-
-
-        document.querySelectorAll('.status-slider').forEach(s => {
-            s.addEventListener('input', (e) => {
-                const idx = e.target.dataset.index;
-                const val = parseInt(e.target.value);
-                
-                // ✅ CORREÇÃO: Garante que o array existe antes de atribuir
-                if (!state.biometria[state.currentUser]) {
-                    state.biometria[state.currentUser] = [50, 50, 50, 50];
-                }
-                
-                state.biometria[state.currentUser][idx] = val; 
-                document.getElementById(`val-${idx}`).innerText = val + "%";
-                
-                // ✅ CORREÇÃO: Atualiza o gráfico imediatamente (feedback local)
-                updateChart(false);
-                
-                // Salva no Firebase com debounce
-                save();
-            });
-        });
-
-        function updateDeployButton() { 
-            const checkedCount = Object.values(state.checkboxes).filter(v => v === true).length;
-            document.getElementById('btn-deploy').disabled = checkedCount < 5; 
-        }
-
-        // --- LÓGICA DO MASCOTE (LOBO 3D) ---
         function updatePetUI() {
             if (!state.pet) return;
             const now = Date.now();
-            
             const hoursSinceFood = (now - state.pet.ultimo_almoco) / (1000 * 60 * 60);
             const hoursSinceLove = (now - state.pet.ultimo_carinho) / (1000 * 60 * 60);
-
             const fome = Math.max(0, 100 - (hoursSinceFood * 10));
             const humor = Math.max(0, 100 - (hoursSinceLove * 15));
 
-            const barFome = document.getElementById('bar-fome');
-            const barHumor = document.getElementById('bar-humor');
-            const lastUser = document.getElementById('pet-last-user');
-            const container = document.querySelector('.pet-container');
-
-            if (barFome) {
-                barFome.style.width = fome + '%';
-                barFome.style.background = fome < 30 ? 'var(--alert-red)' : 'var(--matrix-green)';
-            }
-            if (barHumor) {
-                barHumor.style.width = humor + '%';
-                barHumor.style.background = humor < 30 ? 'var(--alert-red)' : 'var(--neon-blue)';
-            }
-            if (lastUser) lastUser.innerText = (state.pet.quem_interagiu || '---').toUpperCase();
-
-            if (container) {
-                container.style.borderColor = (fome < 20 || humor < 20) ? 'var(--alert-red)' : 'rgba(0, 210, 255, 0.2)';
-            }
+            document.getElementById('bar-fome').style.width = fome + '%';
+            document.getElementById('bar-fome').style.background = fome < 30 ? 'var(--alert-red)' : 'var(--matrix-green)';
+            document.getElementById('bar-humor').style.width = humor + '%';
+            document.getElementById('bar-humor').style.background = humor < 30 ? 'var(--alert-red)' : 'var(--neon-blue)';
+            document.getElementById('pet-last-user').innerText = (state.pet.quem_interagiu || '---').toUpperCase();
+            document.getElementById('sleep-overlay').className = state.pet.dormindo ? 'sleep-overlay active' : 'sleep-overlay';
+            document.getElementById('btn-sono').innerText = state.pet.dormindo ? '☀️ ACORDAR' : '💤 SONO';
         }
 
         function petInteraction(type) {
             if (!state.pet) return;
             const now = Date.now();
-            
             if (state.pet.dormindo && type !== 'sono') {
                 showBubble("Zzz... Deixe-me dormir!");
                 return;
             }
 
-            let xpGained = 5;
             if (type === 'alimentar') {
                 state.pet.ultimo_almoco = now;
                 showBubble("Nhac! Delícia! 🦴");
@@ -1013,162 +474,157 @@
                 showBubble("Au au! ❤️");
                 playSound('bark');
                 createHearts();
-            } else if (type === 'banho') {
-                state.pet.ultimo_banho = now;
-                showBubble("Splosh! Limpinho! 🧼");
-                createBubbles();
-                xpGained = 10;
+                // Animação de felicidade temporária
+                if (petApi) {
+                    petApi.getAnimations((err, anims) => {
+                        const happy = anims.find(a => a.name.toLowerCase().includes('happy') || a.name.toLowerCase().includes('jump'));
+                        if (happy) {
+                            petApi.setCurrentAnimationByUID(happy.uid);
+                            setTimeout(updatePetAnimation, 3000);
+                        }
+                    });
+                }
             } else if (type === 'sono') {
                 state.pet.dormindo = !state.pet.dormindo;
                 state.pet.ultimo_sono = now;
                 showBubble(state.pet.dormindo ? "Boa noite... 💤" : "Bom dia! ☀️");
-                xpGained = state.pet.dormindo ? 2 : 0;
             }
 
-            state.pet.xp = (state.pet.xp || 0) + xpGained;
             state.pet.quem_interagiu = state.currentUser;
             save();
             updatePetUI();
+            updatePetAnimation();
         }
 
-        function createBubbles() {
+        function showBubble(text) {
+            const b = document.getElementById('pet-bubble');
+            b.innerText = text;
+            b.style.display = 'block';
+            setTimeout(() => b.style.display = 'none', 3000);
+        }
+
+        function playSound(type) {
+            const audio = new Audio(`assets/audio/${type === 'bark' ? 'bark.mp3' : 'eat.mp3'}`);
+            audio.volume = 0.3;
+            audio.play().catch(() => {});
+        }
+
+        function createHearts() {
             const container = document.getElementById('pet-section');
-            for (let i = 0; i < 10; i++) {
-                const b = document.createElement('div');
-                b.className = 'bubble-particle';
-                const size = Math.random() * 15 + 5;
-                b.style.width = size + 'px';
-                b.style.height = size + 'px';
-                b.style.left = (20 + Math.random() * 60) + '%';
-                b.style.top = '60%';
-                b.style.animationDelay = (Math.random() * 1) + 's';
-                container.appendChild(b);
-                setTimeout(() => b.remove(), 2000);
+            for (let i = 0; i < 5; i++) {
+                const h = document.createElement('div');
+                h.className = 'heart-particle';
+                h.innerHTML = '❤️';
+                h.style.left = (40 + Math.random() * 20) + '%';
+                h.style.top = '40%';
+                container.appendChild(h);
+                setTimeout(() => h.remove(), 1500);
             }
         }
 
         function createStars() {
             const container = document.getElementById('pet-section');
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 5; i++) {
                 const s = document.createElement('div');
                 s.className = 'star-particle';
                 s.innerHTML = '⭐';
-                s.style.left = (30 + Math.random() * 40) + '%';
-                s.style.top = '30%';
-                s.style.animationDelay = (Math.random() * 0.5) + 's';
+                s.style.left = (40 + Math.random() * 20) + '%';
+                s.style.top = '40%';
                 container.appendChild(s);
                 setTimeout(() => s.remove(), 1000);
             }
         }
 
-        function showBubble(text) {
-            const bubble = document.getElementById('pet-bubble');
-            if (bubble) {
-                bubble.innerText = text;
-                bubble.style.display = 'block';
-                setTimeout(() => bubble.style.display = 'none', 3000);
-            }
-        }
-
-        function createHearts() {
-            const container = document.getElementById('pet-section');
-            if (!container) return;
-            for (let i = 0; i < 5; i++) {
-                const heart = document.createElement('div');
-                heart.className = 'heart-particle';
-                heart.innerHTML = '❤️';
-                heart.style.left = (40 + Math.random() * 40) + '%';
-                heart.style.top = '40%';
-                heart.style.animationDelay = (Math.random() * 0.5) + 's';
-                container.appendChild(heart);
-                setTimeout(() => heart.remove(), 1500);
-            }
-        }
-
-        function playSound(type) {
-            const sounds = {
-                bark: 'assets/audio/bark.mp3',
-                eat: 'assets/audio/eat.mp3'
-            };
-            const audio = new Audio(sounds[type]);
-            audio.volume = 0.3;
-            audio.play().catch(e => {
-                console.log("Áudio bloqueado: interaja com a página primeiro.", e);
+        function save() {
+            if (syncingFromFirebase) return;
+            db.ref('tacp_contract').update({
+                biometria: state.biometria,
+                checkboxes: state.checkboxes,
+                pet: state.pet,
+                currentMusic: state.currentMusic
             });
         }
 
-        setInterval(updatePetUI, 60000);
-
-        document.querySelectorAll('.expandable-header').forEach(h => h.onclick = () => h.parentElement.classList.toggle('expanded'));
-        let sec = 0; setInterval(() => { sec++; let h=Math.floor(sec/3600).toString().padStart(2,'0'), m=Math.floor((sec%3600)/60).toString().padStart(2,'0'), s=(sec%60).toString().padStart(2,'0'); document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`; }, 1000);
-    
-        let swRegistration = null;
-        async function registerSW() {
-            if ('serviceWorker' in navigator) {
-                try {
-                    const reg = await navigator.serviceWorker.register('sw.js');
-                    console.log("✅ Service Worker registrado!");
-                    swRegistration = reg;
-                    
-                    // Espera o SW estar pronto
-                    await navigator.serviceWorker.ready;
-                    console.log("✅ Service Worker pronto e ativo.");
-                    
-                    // Se houver um usuário logado, tenta registrar o FCM
-                    if (state.currentUser && Notification.permission === 'granted') {
-                        registrarFCM();
-                    }
-                } catch (err) {
-                    console.error("❌ Erro ao registrar Service Worker:", err);
+        function initRadar() {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Fome', 'Paciência', 'Tristeza', 'Felicidade'],
+                    datasets: [
+                        { label: 'Juan', data: state.biometria.juan, borderColor: '#00ff41', backgroundColor: 'rgba(0,255,65,0.1)' },
+                        { label: 'Mici', data: state.biometria.mici, borderColor: '#00d2ff', backgroundColor: 'rgba(0,210,255,0.1)' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { r: { grid: { color: '#333' }, ticks: { display: false }, pointLabels: { color: '#8b949e' } } },
+                    plugins: { legend: { labels: { color: '#fff' } } }
                 }
-            }
+            });
         }
-        registerSW();
-        const messaging = firebase.messaging();
 
-        messaging.onMessage((payload) => {
-            console.log('📩 Push recebido (foreground):', payload);
+        function updateChart(force = false) {
+            if (!chart) return;
+            chart.data.datasets[0].data = state.biometria.juan;
+            chart.data.datasets[1].data = state.biometria.mici;
+            chart.update();
+        }
 
-            const title = payload.notification?.title || 'TACP';
-            const body  = payload.notification?.body  || '';
+        function syncSliders() {
+            state.biometria[state.currentUser].forEach((val, i) => {
+                const s = document.querySelector(`.status-slider[data-index="${i}"]`);
+                if (s) s.value = val;
+                const l = document.getElementById(`val-${i}`);
+                if (l) l.innerText = val + "%";
+            });
+        }
 
-            triggerNotification(title, body);
+        document.querySelectorAll('.status-slider').forEach(s => {
+            s.addEventListener('input', e => {
+                const i = e.target.dataset.index;
+                const v = parseInt(e.target.value);
+                state.biometria[state.currentUser][i] = v;
+                document.getElementById(`val-${i}`).innerText = v + "%";
+                updateChart();
+                save();
+            });
         });
 
-        async function registrarFCM() {
-            try {
-                if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-                if (Notification.permission !== 'granted') return;
-                
-                // ✅ CORREÇÃO: Espera o SW estar totalmente pronto e ATIVO
-                const reg = await navigator.serviceWorker.ready;
-                
-                // Pequeno delay para garantir que o PushManager está disponível
-                if (!reg.active) {
-                    console.log("⏳ Aguardando ativação do Service Worker...");
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-
-                const token = await messaging.getToken({
-                    serviceWorkerRegistration: reg,
-                    vapidKey: "BBkKvm1cWf-3jw9govGz9Iud--j8Ct5BGbTCfF3Jtx-YrYjTs-jIAC6LgOgVRKlweLuzI9GvBFFVBVLRp0LItVQ"
-                });
-
-                if (token) {
-                    console.log("✅ FCM Token:", token);
-                    await firebase.database().ref('fcm_tokens/' + state.currentUser).set(token);
-                }
-            } catch (err) {
-                console.error("❌ Erro ao registrar FCM:", err);
-                // Tenta novamente em 5 segundos se for erro de ativação
-                if (err.message.includes('no active Service Worker')) {
-                    setTimeout(registrarFCM, 5000);
-                }
+        function renderClauses() {
+            const container = document.getElementById('clauses-container');
+            container.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const c = defaultClauses[i];
+                const div = document.createElement('div');
+                div.className = 'clause-item';
+                div.innerHTML = `
+                    <input type="checkbox" class="clause-checkbox" ${state.checkboxes[i] ? 'checked' : ''} onclick="toggleCheck(${i}, this.checked)">
+                    <div class="clause-content"><h3>${c.title}</h3><p>${c.content}</p></div>
+                `;
+                container.appendChild(div);
             }
         }
 
-        // O registro do FCM agora é chamado dentro do onAuthStateChanged
-
-        </script>
-    </body>
+        function toggleCheck(i, checked) { state.checkboxes[i] = checked; save(); }
+        function toggleChat() { const w = document.getElementById('chat-window'); w.style.display = w.style.display === 'flex' ? 'none' : 'flex'; }
+        function sendMessage() {
+            const i = document.getElementById('chat-input');
+            if (i.value.trim()) {
+                db.ref('chat').push({ user: state.currentUser, text: i.value, time: Date.now() });
+                i.value = '';
+            }
+        }
+        function updateMusicPlayer(url) {
+            const c = document.getElementById('spotify-player-container');
+            if (!url) { c.innerHTML = '<p style="font-size: 0.7rem; color: var(--text-gray); text-align: center;">Nenhuma música compartilhada.</p>'; return; }
+            let id = url.includes('track/') ? url.split('track/')[1].split('?')[0] : '';
+            if (id) c.innerHTML = `<iframe class="spotify-embed" src="https://open.spotify.com/embed/track/${id}" allow="encrypted-media"></iframe>`;
+        }
+        function shareMusic() { const l = document.getElementById('spotify-link').value; if (l) { state.currentMusic = l; save(); } }
+        function clearMusic() { state.currentMusic = null; save(); }
+        function openSpotify() { window.open('spotify:track:', '_blank'); }
+    </script>
+</body>
 </html>
